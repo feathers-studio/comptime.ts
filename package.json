@@ -1,0 +1,12 @@
+{
+	"name": "comptime.ts",
+	"module": "index.ts",
+	"type": "module",
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"dependencies": {
+		"magic-string": "^0.30.17",
+		"typescript": "^5"
+	}
+}
