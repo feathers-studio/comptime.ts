@@ -4,9 +4,21 @@
 	"module": "index.ts",
 	"type": "module",
 	"exports": {
-		".": "./index.ts",
-		"./vite": "./vite.ts"
+		".": "./lib/index.js",
+		"./vite": "./lib/vite.js"
 	},
+	"bin": {
+		"comptime.ts": "./lib/bin.js"
+	},
+	"scripts": {
+		"test": "bun test tests/comptime.test.ts",
+		"check": "tsc --noEmit",
+		"emit": "tsc",
+		"prepare": "tsc"
+	},
+	"files": [
+		"lib"
+	],
 	"license": "MIT",
 	"author": {
 		"name": "Muthu Kumar <@MKRhere> (muthukumar@thefeathers.in)",

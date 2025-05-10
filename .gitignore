@@ -2,6 +2,7 @@
 node_modules
 
 # output
+lib
 out
 dist
 *.tgz

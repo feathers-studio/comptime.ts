@@ -1,0 +1,22 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - *.*.*
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - run : npm ci --ignore-scripts
+    - run : npm run prepare
+    - run : npm version from-git
+    - name: Publish to npm
+      run : |
+        npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+        cd .npm && npm publish --ignore-scripts --access=public
+      env :
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

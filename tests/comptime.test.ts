@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { resolve } from "node:path";
 
-import { getComptimeReplacements, applyComptimeReplacements } from "../comptime.ts";
+import { getComptimeReplacements, applyComptimeReplacements } from "../src/comptime.ts";
 
 const expected = `import { sum } from "./producer.ts" with { type: "comptime" };
 console.log(3);
