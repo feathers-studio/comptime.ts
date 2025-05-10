@@ -1,12 +1,41 @@
 {
 	"name": "comptime.ts",
+	"version": "0.0.0-dev",
 	"module": "index.ts",
 	"type": "module",
-	"devDependencies": {
-		"@types/bun": "latest"
+	"exports": {
+		".": "./index.ts",
+		"./vite": "./vite.ts"
 	},
+	"license": "MIT",
+	"author": {
+		"name": "Muthu Kumar <@MKRhere> (muthukumar@thefeathers.in)",
+		"url": "https://mkr.pw"
+	},
+	"funding": "https://github.com/sponsors/MKRhere",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/feathers-studio/comptime.ts"
+	},
+	"bugs": {
+		"url": "https://github.com/feathers-studio/comptime.ts/issues"
+	},
+	"homepage": "https://github.com/feathers-studio/comptime.ts#readme",
+	"keywords": [
+		"comptime",
+		"compile-time",
+		"typescript",
+		"vite",
+		"vite-plugin"
+	],
 	"dependencies": {
 		"magic-string": "^0.30.17",
 		"typescript": "^5"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"optionalDependencies": {
+		"vite": "^6"
 	}
 }
