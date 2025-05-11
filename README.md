@@ -1,4 +1,10 @@
-# ⚡️ comptime.ts
+<div align="center">
+  <img src="https://raw.githubusercontent.com/feathers-studio/comptime.ts/master/docs/comptime.ts.svg" alt="Hyperactive">
+</div>
+
+<div align="center">
+<h1>⚡️ comptime.ts</h1>
+</div>
 
 [![npm version](https://img.shields.io/npm/v/comptime.ts.svg)](https://www.npmjs.com/package/comptime.ts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
