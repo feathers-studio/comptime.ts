@@ -47,8 +47,12 @@ function recursivelyGetIdentifierDeclarations(
 			if (seen.has(each)) return [];
 			seen.add(each);
 
-			if (ts.isImportSpecifier(each)) return [each];
+			if (ts.isImportSpecifier(each)) {
+				if (each.isTypeOnly) return [];
+				return [each];
+			}
 			if (ts.isVariableDeclaration(each)) {
+				if (each.type) return [];
 				// find other identifiers used in this declaration
 				const identifiers = query<ts.Identifier>(each, ts.SyntaxKind.Identifier).filter(idn2 => idn !== idn2); // exclude the current identifier
 				return identifiers.flatMap(idn => recursivelyGetIdentifierDeclarations(seen, checker, sourceFile, idn));
