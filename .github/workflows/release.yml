@@ -11,7 +11,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - run : npm ci --ignore-scripts
+    - run : npm i --ignore-scripts
     - run : npm run prepare
     - run : npm version from-git
     - name: Publish to npm
