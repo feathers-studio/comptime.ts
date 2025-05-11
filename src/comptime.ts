@@ -73,16 +73,24 @@ const getImportLine = async (imp: ts.ImportSpecifier) => {
 async function getExpression(checker: ts.TypeChecker, sourceFile: ts.SourceFile, node: ts.Node) {
 	const expression = node.getText();
 	const identifiers = query<ts.Identifier>(node, ts.SyntaxKind.Identifier);
-	const decls = identifiers
-		.flatMap(idn => recursivelyGetIdentifierDeclarations(checker, sourceFile, idn))
-		.sort((a, b) => {
-			const x = sourceFile.getLineAndCharacterOfPosition(a.getStart(sourceFile));
-			const y = sourceFile.getLineAndCharacterOfPosition(b.getStart(sourceFile));
-			return x.line - y.line;
-		});
+	const decls = identifiers.flatMap(idn => recursivelyGetIdentifierDeclarations(checker, sourceFile, idn));
+
+	// remove duplicates
+	const seen = new Set<ts.ImportSpecifier | ts.VariableDeclaration>();
+	const unique = decls.filter(each => {
+		if (seen.has(each)) return false;
+		seen.add(each);
+		return true;
+	});
+
+	const sorted = unique.sort((a, b) => {
+		const x = sourceFile.getLineAndCharacterOfPosition(a.getStart(sourceFile));
+		const y = sourceFile.getLineAndCharacterOfPosition(b.getStart(sourceFile));
+		return x.line - y.line;
+	});
 
 	const declLines = await Promise.all(
-		decls.map(each => (ts.isImportSpecifier(each) ? getImportLine(each) : each.getText().trim())),
+		sorted.map(each => (ts.isImportSpecifier(each) ? getImportLine(each) : each.getText().trim())),
 	);
 
 	return declLines.join("\n") + "\n" + `return ${expression};`;

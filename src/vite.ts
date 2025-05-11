@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import type { Plugin } from "vite";
 import MagicString from "magic-string";
 import { type Replacements, getComptimeReplacements } from "./comptime.ts";
@@ -10,9 +12,11 @@ export async function comptime(tsconfigPath?: string): Promise<Plugin> {
 		async buildStart() {
 			replacements = await getComptimeReplacements({ tsconfigPath });
 		},
-		transform(code, id) {
+		async load(id) {
 			const replacement = replacements[id];
 			if (!replacement) return null;
+
+			const code = await readFile(id, "utf-8");
 
 			const s = new MagicString(code);
 
