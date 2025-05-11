@@ -33,6 +33,7 @@ export function query<R extends ts.Node>(root: ts.Node, query: ts.SyntaxKind, fi
 }
 
 function recursivelyGetIdentifierDeclarations(
+	seen: Set<ts.ImportSpecifier | ts.VariableDeclaration>,
 	checker: ts.TypeChecker,
 	sourceFile: ts.SourceFile,
 	idn: ts.Identifier,
@@ -43,11 +44,14 @@ function recursivelyGetIdentifierDeclarations(
 	return decls
 		.filter(decl => ts.isVariableDeclaration(decl) || ts.isImportSpecifier(decl))
 		.flatMap(each => {
+			if (seen.has(each)) return [];
+			seen.add(each);
+
 			if (ts.isImportSpecifier(each)) return [each];
 			if (ts.isVariableDeclaration(each)) {
 				// find other identifiers used in this declaration
 				const identifiers = query<ts.Identifier>(each, ts.SyntaxKind.Identifier).filter(idn2 => idn !== idn2); // exclude the current identifier
-				return identifiers.flatMap(idn => recursivelyGetIdentifierDeclarations(checker, sourceFile, idn));
+				return identifiers.flatMap(idn => recursivelyGetIdentifierDeclarations(seen, checker, sourceFile, idn));
 			}
 
 			throw new Error("Unreachable");
@@ -73,17 +77,10 @@ const getImportLine = async (imp: ts.ImportSpecifier) => {
 async function getExpression(checker: ts.TypeChecker, sourceFile: ts.SourceFile, node: ts.Node) {
 	const expression = node.getText();
 	const identifiers = query<ts.Identifier>(node, ts.SyntaxKind.Identifier);
-	const decls = identifiers.flatMap(idn => recursivelyGetIdentifierDeclarations(checker, sourceFile, idn));
-
-	// remove duplicates
 	const seen = new Set<ts.ImportSpecifier | ts.VariableDeclaration>();
-	const unique = decls.filter(each => {
-		if (seen.has(each)) return false;
-		seen.add(each);
-		return true;
-	});
+	const decls = identifiers.flatMap(idn => recursivelyGetIdentifierDeclarations(seen, checker, sourceFile, idn));
 
-	const sorted = unique.sort((a, b) => {
+	const sorted = decls.sort((a, b) => {
 		const x = sourceFile.getLineAndCharacterOfPosition(a.getStart(sourceFile));
 		const y = sourceFile.getLineAndCharacterOfPosition(b.getStart(sourceFile));
 		return x.line - y.line;
@@ -97,12 +94,18 @@ async function getExpression(checker: ts.TypeChecker, sourceFile: ts.SourceFile,
 }
 
 export async function getComptimeReplacements(opts?: { tsconfigPath?: string }): Promise<Replacements> {
-	const config = opts?.tsconfigPath ?? ts.findConfigFile(".", ts.sys.fileExists, "tsconfig.json");
+	const config = opts?.tsconfigPath
+		? path.resolve(opts.tsconfigPath)
+		: ts.findConfigFile(".", ts.sys.fileExists, "tsconfig.json");
 	if (!config) throw new Error("Could not find tsconfig.json");
 
 	const tsConfig = ts.readConfigFile(config, ts.sys.readFile);
-	const options = ts.parseJsonConfigFileContent(tsConfig.config, ts.sys, path.dirname(config));
-	const program = ts.createProgram(options.fileNames, options.options);
+	const configDir = path.dirname(config);
+	const options = ts.parseJsonConfigFileContent(tsConfig.config, ts.sys, configDir);
+	const program = ts.createProgram(
+		options.fileNames.map(f => path.resolve(configDir, f)),
+		options.options,
+	);
 	const checker = program.getTypeChecker();
 
 	return Object.fromEntries(
@@ -144,11 +147,7 @@ export async function getComptimeReplacements(opts?: { tsconfigPath?: string }):
 					const func = new Function(`return async function evaluate() { ${expression} };`)();
 					const result = JSON.stringify(await func());
 
-					return {
-						start: target.getStart(file),
-						end: target.getEnd(),
-						replacement: result,
-					};
+					return { start: target.getStart(file), end: target.getEnd(), replacement: result };
 				});
 
 				return [file.fileName, await Promise.all(replacements)] as const;
