@@ -145,11 +145,33 @@ export async function getComptimeReplacements(opts?: { tsconfigPath?: string }):
 				});
 
 				const replacements = comptimeConsumers.map(async consumer => {
-					const target = consumer.parent;
+					let current: ts.Node = consumer;
+					while (current.parent) {
+						const parent = current.parent;
+						if (
+							// Choose foo.bar instead of foo
+							(ts.isPropertyAccessExpression(parent) && parent.expression === current) ||
+							// Choose foo[bar] instead of foo
+							(ts.isElementAccessExpression(parent) && parent.expression === current) ||
+							// Choose foo() instead of foo
+							(ts.isCallExpression(parent) && parent.expression === current) ||
+							// Choose foo`bar` instead of foo
+							(ts.isTaggedTemplateExpression(parent) && parent.tag === current)
+
+							// We deliberately chose not to include ParenthesizedExpression.
+							// Advanced users can use this to opt-out of walking up the chain
+							// (foo).bar will only evaluate foo
+						) {
+							current = parent;
+						} else {
+							break;
+						}
+					}
+					const target = current;
 
 					const expression = await getExpression(checker, file, target);
 					const func = new Function(`return async function evaluate() { ${expression} };`)();
-					const result = JSON.stringify(await func());
+					const result = JSON.stringify(await func()) ?? "undefined";
 
 					return { start: target.getStart(file), end: target.getEnd(), replacement: result };
 				});
