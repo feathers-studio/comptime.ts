@@ -20,7 +20,11 @@ export type Replacements = Record<string, Replacement[]>;
 
 export function assertNoSyntaxErrors(tsCode: string) {
 	const fileName = "eval.ts";
-	const compilerOptions: ts.CompilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext };
+	const compilerOptions: ts.CompilerOptions = {
+		module: ts.ModuleKind.ESNext,
+		target: ts.ScriptTarget.ESNext,
+		allowJs: true,
+	};
 	const host = ts.createCompilerHost(compilerOptions);
 	host.getSourceFile = (fileName_, languageVersion) =>
 		fileName_ === fileName
@@ -41,7 +45,12 @@ export function assertNoSyntaxErrors(tsCode: string) {
 export function eraseTypes(tsCode: string): string {
 	return ts
 		.transpileModule(tsCode, {
-			compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext, noEmitOnError: true },
+			compilerOptions: {
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext,
+				allowJs: true,
+				noEmitOnError: true,
+			},
 		})
 		.outputText.trim();
 }
@@ -152,10 +161,24 @@ const getImportLine = async (imp: ts.ImportSpecifier | ts.ImportClause | ts.Name
 
 	let importPath: string;
 
+	const importer = decl.getSourceFile().fileName;
+	const importDir = path.dirname(importer);
+
 	if (specifier.startsWith("./") || specifier.startsWith("../")) {
-		importPath = path.resolve(path.dirname(decl.getSourceFile().fileName), specifier);
+		importPath = path.resolve(importDir, specifier);
 	} else {
-		importPath = (await import.meta.resolve(specifier)).slice("file://".length);
+		const resolved = ts.nodeModuleNameResolver(
+			specifier,
+			importer,
+			{
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext,
+				allowJs: true,
+			},
+			ts.sys,
+		);
+		if (!resolved.resolvedModule) throw new Error("Could not resolve module: " + specifier);
+		importPath = resolved.resolvedModule.resolvedFileName;
 	}
 
 	if (ts.isImportSpecifier(imp)) {
