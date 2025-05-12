@@ -32,39 +32,83 @@ export function query<R extends ts.Node>(root: ts.Node, query: ts.SyntaxKind, fi
 	return results;
 }
 
+type ImportNode = ts.ImportSpecifier | ts.ImportClause | ts.NamespaceImport;
+type DeclarationNode = ts.Statement | ImportNode;
+
+export const isImportNode = (node: ts.Node): node is ImportNode =>
+	ts.isImportSpecifier(node) || ts.isNamespaceImport(node) || (ts.isImportClause(node) && Boolean(node.name));
+
 function recursivelyGetIdentifierDeclarations(
-	seen: Set<ts.ImportSpecifier | ts.VariableDeclaration>,
+	seen: Set<DeclarationNode>,
 	checker: ts.TypeChecker,
 	sourceFile: ts.SourceFile,
 	idn: ts.Identifier,
-): (ts.ImportSpecifier | ts.VariableDeclaration)[] {
+): DeclarationNode[] {
 	const decls = checker.getSymbolAtLocation(idn)?.declarations;
 	if (!decls) return [];
 
 	return decls
-		.filter(decl => ts.isVariableDeclaration(decl) || ts.isImportSpecifier(decl))
-		.flatMap(each => {
-			if (seen.has(each)) return [];
-			seen.add(each);
+		.filter(decl => {
+			const declFile = decl.getSourceFile();
+			// remove ambient declaration files (d.ts)
+			if (declFile.isDeclarationFile) return false;
+			// avoid recursing into other files
+			if (declFile.fileName !== sourceFile.fileName) return false;
 
-			if (ts.isImportSpecifier(each)) {
-				if (each.isTypeOnly) return [];
+			const allowed =
+				ts.isVariableDeclaration(decl) ||
+				ts.isFunctionDeclaration(decl) ||
+				ts.isClassDeclaration(decl) ||
+				ts.isEnumDeclaration(decl) ||
+				isImportNode(decl);
+
+			if (!allowed) return false;
+
+			// remove declare statements
+			if ("modifiers" in decl && decl.modifiers?.some(m => m.kind === ts.SyntaxKind.DeclareKeyword)) return false;
+			if (ts.isInterfaceDeclaration(decl)) return false;
+			if (ts.isTypeAliasDeclaration(decl)) return false;
+			if (ts.isTypeLiteralNode(decl)) return false;
+			if (ts.isTypeParameterDeclaration(decl)) return false;
+
+			return true;
+		})
+		.flatMap(each => {
+			if (isImportNode(each)) {
+				if ("isTypeOnly" in each && each.isTypeOnly) return [];
+				if (seen.has(each)) return [];
+				seen.add(each);
 				return [each];
 			}
-			if (ts.isVariableDeclaration(each)) {
-				if (each.type) return [];
-				// find other identifiers used in this declaration
-				const identifiers = query<ts.Identifier>(each, ts.SyntaxKind.Identifier).filter(idn2 => idn !== idn2); // exclude the current identifier
-				return identifiers.flatMap(idn => recursivelyGetIdentifierDeclarations(seen, checker, sourceFile, idn));
-			}
 
-			throw new Error("Unreachable");
+			/*
+				Find the statement that contains the current declaration.
+
+				Example, with the following code:
+				const func = () => void 0;
+
+				`each` here would just be `func = () => void 0`,
+				but we want to return the entire statement.
+			*/
+			const enclosingStatement = getEnclosingStatement(each);
+
+			if (seen.has(enclosingStatement)) return [];
+			seen.add(enclosingStatement);
+
+			const nested = query<ts.Identifier>(enclosingStatement, ts.SyntaxKind.Identifier, idn => {
+				const parent = idn.parent;
+				// filter identifiers that are right hand side of a property access expression
+				return parent && ts.isPropertyAccessExpression(parent) && parent.name === idn;
+			});
+
+			return nested
+				.flatMap(idn => recursivelyGetIdentifierDeclarations(seen, checker, sourceFile, idn))
+				.concat(enclosingStatement);
 		});
 }
 
-const getImportLine = async (imp: ts.ImportSpecifier) => {
-	const decl = imp.parent.parent.parent as ts.ImportDeclaration;
-
+const getImportLine = async (imp: ts.ImportSpecifier | ts.ImportClause | ts.NamespaceImport) => {
+	const decl = getEnclosingImportDeclaration(imp);
 	const specifier = decl.moduleSpecifier.getText().slice(1, -1);
 
 	let importPath: string;
@@ -75,13 +119,26 @@ const getImportLine = async (imp: ts.ImportSpecifier) => {
 		importPath = (await import.meta.resolve(specifier)).slice("file://".length);
 	}
 
-	return `const {${imp.name.getText()}} = await import("${importPath}");`;
+	if (ts.isImportSpecifier(imp)) {
+		// Named import: import { foo } from ... or import { foo as bar } from ...
+		const imported = imp.propertyName ? imp.propertyName.getText() : imp.name.getText();
+		const local = imp.name.getText();
+		const binding = imported === local ? local : `${imported}: ${local}`;
+		return `const { ${binding} } = await import("${importPath}");`;
+	} else if (ts.isNamespaceImport(imp)) {
+		// Namespace import: import * as foo from ...
+		return `const ${imp.name.getText()} = await import("${importPath}");`;
+	} else if (ts.isImportClause(imp) && imp.name) {
+		// Default import: import foo from ...
+		return `const { default: ${imp.name.getText()} } = await import("${importPath}");`;
+	}
+	throw new Error("Unsupported import type for comptime evaluation.");
 };
 
-async function getExpression(checker: ts.TypeChecker, sourceFile: ts.SourceFile, node: ts.Node) {
+async function getEvaluation(checker: ts.TypeChecker, sourceFile: ts.SourceFile, node: ts.Node) {
 	const expression = node.getText();
 	const identifiers = query<ts.Identifier>(node, ts.SyntaxKind.Identifier);
-	const seen = new Set<ts.ImportSpecifier | ts.VariableDeclaration>();
+	const seen = new Set<DeclarationNode>();
 	const decls = identifiers.flatMap(idn => recursivelyGetIdentifierDeclarations(seen, checker, sourceFile, idn));
 
 	const sorted = decls.sort((a, b) => {
