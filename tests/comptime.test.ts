@@ -1,9 +1,8 @@
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { mkdir, readFile, writeFile, rm } from "fs/promises";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { comptimeCompiler } from "../src/index.ts";
-import * as ts from "typescript";
 
 const randId = () => Math.random().toString(36).substring(2, 15);
 
@@ -13,6 +12,8 @@ describe("comptime", () => {
 	beforeEach(async () => {
 		temp = join(tmpdir(), randId());
 		await mkdir(temp, { recursive: true });
+		process.chdir(temp);
+		await writeFile(join(temp, "package.json"), `{"name": "test", "version": "1.0.0", "type": "module"}`);
 		await writeFile(
 			join(temp, "tsconfig.json"),
 			`
@@ -36,6 +37,7 @@ describe("comptime", () => {
 
 	const file = async (name: string, content: string) => {
 		const path = join(temp, name);
+		await mkdir(dirname(path), { recursive: true });
 		await writeFile(path, content);
 		return path;
 	};
@@ -373,6 +375,7 @@ describe("comptime", () => {
 	});
 
 	it("should force comptime evaluation of an expression", async () => {
+		await file("node_modules/comptime.ts/index.js", `export const comptime = x => x;`);
 		await file(
 			"foo.ts",
 			`
@@ -392,6 +395,7 @@ describe("comptime", () => {
 	});
 
 	it("should force comptime evaluation of a complex expression", async () => {
+		await file("node_modules/comptime.ts/index.js", `export const comptime = x => x;`);
 		await file(
 			"foo.ts",
 			`
@@ -423,6 +427,7 @@ describe("comptime", () => {
 	});
 
 	it("should evaluate asynchronous expressions", async () => {
+		await file("node_modules/comptime.ts/index.js", `export const comptime = x => x;`);
 		await file(
 			"foo.ts",
 			`
@@ -474,6 +479,7 @@ describe("comptime", () => {
 	});
 
 	it("should work even if some statements are export declarations", async () => {
+		await file("node_modules/comptime.ts/index.js", `export const comptime = x => x;`);
 		await file(
 			"foo.ts",
 			`
@@ -490,5 +496,55 @@ describe("comptime", () => {
 			console.log(4);
 		`;
 		expect(result).toEqual(expected);
+	});
+
+	it("should import comptime from node_modules", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { x } from "bar" with { type: "comptime" };
+			console.log(x);
+		`,
+		);
+		await file(
+			"node_modules/bar/package.json",
+			`{"name": "bar", "version": "1.0.0", "main": "index.js", "type": "module"}`,
+		);
+		await file("node_modules/bar/index.js", `export const x = 2;`);
+
+		const result = await getCompiled("foo.ts");
+		const expected = `
+			import { x } from "bar" with { type: "comptime" };
+			console.log(2);
+		`;
+		expect(result).toEqual(expected);
+	});
+
+	it("should not allow comptime imports from node_modules", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { x } from "bar";
+			console.log(x);
+		`,
+		);
+		await file(
+			"node_modules/bar/package.json",
+			`{"name": "bar", "version": "1.0.0", "main": "index.js", "type": "module"}`,
+		);
+		await file(
+			"node_modules/bar/index.js",
+			`
+			import { x } from "baz" with { type: "comptime" };
+			console.log(x);
+		`,
+		);
+		await file(
+			"node_modules/baz/package.json",
+			`{"name": "baz", "version": "1.0.0", "main": "index.js", "type": "module"}`,
+		);
+		await file("node_modules/baz/index.js", `export const x = 2;`);
+
+		expect(getCompiled("node_modules/bar/index.js")).rejects.toThrow();
 	});
 });
