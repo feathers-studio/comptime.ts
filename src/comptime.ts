@@ -271,7 +271,7 @@ export async function getComptimeReplacements(opts?: {
 					});
 				});
 
-				const replacements = comptimeConsumers.map(async consumer => {
+				const targetExpressions = comptimeConsumers.map(consumer => {
 					let current: ts.Node = consumer;
 					while (current.parent) {
 						const parent = current.parent;
@@ -296,6 +296,30 @@ export async function getComptimeReplacements(opts?: {
 							break;
 						}
 					}
+
+					return current;
+				});
+
+				const sortedTargets = targetExpressions
+					.map(node => ({ node, start: node.getStart(file), end: node.getEnd() }))
+					.sort((a, b) => a.start - b.start);
+
+				/*
+					Remove nested targets, so only the outermost comptime expressions are evaluated.
+					
+					Example: comptime((comptime(1 + 2) + 3) + 4) will only evaluate the outer comptime() function call
+					
+					This prevents double evaluation of the same expression and also double replacement
+					of the same codeblock, which breaks MagicString
+				*/
+				const filteredTargets: typeof sortedTargets = [];
+				let lastEnd = -1;
+				for (const t of sortedTargets) {
+					if (t.start >= lastEnd) {
+						filteredTargets.push(t);
+						lastEnd = t.end;
+					}
+				}
 
 				const replacements = filteredTargets.map(async ({ node: target }) => {
 					let evalProgram: string = "";
