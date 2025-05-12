@@ -220,21 +220,65 @@ function isNodeModules(filePath: string): boolean {
 	return filePath.split(path.sep).includes("node_modules");
 }
 
-export async function getComptimeReplacements(opts?: {
-	tsconfigPath?: string;
+interface BaseConfig {
 	include?: FilterPattern;
 	exclude?: FilterPattern;
-}): Promise<Replacements> {
+}
+
+interface ConfigByConfig extends BaseConfig {
+	rootDir: string;
+	tsconfig: ts.CompilerOptions;
+	tsConfigPath?: never;
+}
+
+interface ConfigByPath extends BaseConfig {
+	rootDir?: never;
+	tsconfig?: never;
+	tsconfigPath: string;
+}
+
+interface ConfigByImplicitConfig extends BaseConfig {
+	rootDir?: never;
+	tsconfig?: never;
+	tsconfigPath?: never;
+}
+
+export type GetComptimeReplacementsOpts = ConfigByConfig | ConfigByPath | ConfigByImplicitConfig;
+
+function getTsConfig(opts?: GetComptimeReplacementsOpts): { configDir: string; tsConfig: ts.CompilerOptions } {
+	if (opts?.tsconfig) {
+		// explicitly passed tsconfig and rootDir
+
+		const configDir = path.resolve(opts.rootDir);
+		return { configDir, tsConfig: opts.tsconfig };
+	}
+
+	if (opts?.tsconfigPath) {
+		// explicitly passed tsconfig path
+
+		const configPath = path.resolve(opts.tsconfigPath);
+		const configDir = path.dirname(configPath);
+
+		const tsConfig = ts.readConfigFile(configPath, ts.sys.readFile).config;
+		if (!tsConfig) throw new Error("Could not find tsconfig.json at " + configPath);
+		return { configDir, tsConfig };
+	}
+
+	{
+		// implicitly read a tsconfig from the current directory
+
+		const configDir = path.resolve(".");
+		const config = ts.findConfigFile(configDir, ts.sys.fileExists, "tsconfig.json");
+		if (!config) throw new Error("Could not locate tsconfig.json in " + configDir);
+		return { configDir, tsConfig: ts.readConfigFile(config, ts.sys.readFile).config };
+	}
+}
+
+export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts): Promise<Replacements> {
 	const filter = createFilter(opts?.include, opts?.exclude);
 
-	const config = opts?.tsconfigPath
-		? path.resolve(opts.tsconfigPath)
-		: ts.findConfigFile(".", ts.sys.fileExists, "tsconfig.json");
-	if (!config) throw new Error("Could not find tsconfig.json");
-
-	const tsConfig = ts.readConfigFile(config, ts.sys.readFile);
-	const configDir = path.dirname(config);
-	const options = ts.parseJsonConfigFileContent(tsConfig.config, ts.sys, configDir);
+	const { configDir, tsConfig } = getTsConfig(opts);
+	const options = ts.parseJsonConfigFileContent(tsConfig, ts.sys, configDir);
 	const program = ts.createProgram(
 		options.fileNames.map(f => path.resolve(configDir, f)),
 		options.options,
@@ -359,16 +403,19 @@ export async function getComptimeReplacements(opts?: {
 						const func = new Function(`return async function evaluate() { ${transpiled} };`)();
 						resolved = await func();
 					} catch (e) {
-						console.error("An error occurred while evaluating the following code:");
-						if (e instanceof Error) console.error(e.message);
 						if (evalProgram || transpiled) {
+							console.error("An error occurred while evaluating the following code:");
 							console.error("---");
 							console.error(transpiled || evalProgram);
 							console.error("---\n");
 						}
 
 						const marker = `${resolved}:${target.getStart(file)}:${target.getEnd()}`;
-						throw new Error(`Error evaluating ${target.getText()} at ${marker}: ${e}`);
+
+						if (e && typeof e === "object" && "message" in e)
+							console.error(e.message, "at", "stack" in e ? e.stack : "unknown");
+						console.error("---");
+						throw new Error(`Error evaluating ${target.getText()} at ${marker}: ${e}`, { cause: e });
 					}
 					const result = JSON.stringify(resolved) ?? "undefined";
 					return { start: target.getStart(file), end: target.getEnd(), replacement: result };
@@ -380,19 +427,20 @@ export async function getComptimeReplacements(opts?: {
 	);
 }
 
-export async function applyComptimeReplacements(
-	opts: { tsconfigPath?: string; outdir: string },
-	replacements: Replacements,
-) {
-	let config = opts.tsconfigPath ?? ts.findConfigFile(".", ts.sys.fileExists, "tsconfig.json");
-	if (!config) throw new Error("Could not find tsconfig.json");
+export type ApplyComptimeReplacementsOpts = GetComptimeReplacementsOpts & {
+	/** Default: `$configDir/build` */
+	outdir?: string;
+};
 
-	config = path.resolve(path.dirname(config), "tsconfig.json");
+export async function applyComptimeReplacements(opts: ApplyComptimeReplacementsOpts, replacements: Replacements) {
+	const { configDir, tsConfig } = getTsConfig(opts);
+	const options = ts.parseJsonConfigFileContent(tsConfig, ts.sys, configDir);
+	const program = ts.createProgram(
+		options.fileNames.map(f => path.resolve(configDir, f)),
+		options.options,
+	);
 
-	const tsConfig = ts.readConfigFile(config, ts.sys.readFile);
-	const options = ts.parseJsonConfigFileContent(tsConfig.config, ts.sys, path.dirname(config));
-	const program = ts.createProgram(options.fileNames, options.options);
-
+	const outdir = opts.outdir ?? path.join(configDir, "build");
 	console.log("Skipping node_modules");
 
 	for await (const file of program.getSourceFiles()) {
@@ -400,7 +448,7 @@ export async function applyComptimeReplacements(
 		if (resolved.includes("/node_modules/")) continue;
 
 		const s = new MagicString(file.getFullText());
-		const fullPath = path.resolve(path.dirname(config), resolved);
+		const fullPath = path.resolve(configDir, resolved);
 
 		const repl = replacements[fullPath];
 		if (!repl) continue;
@@ -409,8 +457,8 @@ export async function applyComptimeReplacements(
 			s.overwrite(replacement.start, replacement.end, replacement.replacement);
 		}
 
-		const relative = path.relative(path.dirname(config), fullPath);
-		const outFile = path.join(opts.outdir, relative);
+		const relative = path.relative(configDir, fullPath);
+		const outFile = path.join(outdir, relative);
 
 		const dir = path.dirname(outFile);
 		await mkdir(dir, { recursive: true });

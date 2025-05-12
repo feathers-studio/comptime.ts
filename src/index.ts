@@ -1,11 +1,11 @@
-import { applyComptimeReplacements, getComptimeReplacements } from "./comptime.ts";
+import { applyComptimeReplacements, getComptimeReplacements, type GetComptimeReplacementsOpts } from "./comptime.ts";
 
 export type { ComptimeFunction, Replacements } from "./comptime.ts";
 export { getComptimeReplacements, applyComptimeReplacements };
 
-export async function comptimeCompiler(opts: Parameters<typeof getComptimeReplacements>[0], outdir: string) {
+export async function comptimeCompiler(opts?: GetComptimeReplacementsOpts, outdir?: string) {
 	const replacements = await getComptimeReplacements(opts);
-	await applyComptimeReplacements({ tsconfigPath: opts?.tsconfigPath, outdir }, replacements);
+	await applyComptimeReplacements({ ...opts, outdir }, replacements);
 }
 
 /**
