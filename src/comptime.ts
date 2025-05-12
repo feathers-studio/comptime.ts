@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import MagicString from "magic-string";
 import * as ts from "typescript";
+import { type FilterPattern, createFilter } from "vite";
 
 export interface ComptimeFunction {
 	name: string;
@@ -190,7 +191,17 @@ async function getEvaluation(checker: ts.TypeChecker, sourceFile: ts.SourceFile,
 	return declLines.join("\n") + "\n" + `return ${expression};`;
 }
 
-export async function getComptimeReplacements(opts?: { tsconfigPath?: string }): Promise<Replacements> {
+function isNodeModules(filePath: string): boolean {
+	return filePath.split(path.sep).includes("node_modules");
+}
+
+export async function getComptimeReplacements(opts?: {
+	tsconfigPath?: string;
+	include?: FilterPattern;
+	exclude?: FilterPattern;
+}): Promise<Replacements> {
+	const filter = createFilter(opts?.include, opts?.exclude);
+
 	const config = opts?.tsconfigPath
 		? path.resolve(opts.tsconfigPath)
 		: ts.findConfigFile(".", ts.sys.fileExists, "tsconfig.json");
@@ -208,6 +219,9 @@ export async function getComptimeReplacements(opts?: { tsconfigPath?: string }):
 	return Object.fromEntries(
 		await Promise.all(
 			program.getSourceFiles().map(async file => {
+				if (isNodeModules(file.fileName)) return [file.fileName, []];
+				if (!filter(file.fileName)) return [file.fileName, []];
+
 				const comptimeImports = query<ts.ImportDeclaration>(file, ts.SyntaxKind.ImportDeclaration, each => {
 					const elements = each.attributes?.elements;
 					if (!elements) return false;
