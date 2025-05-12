@@ -1,0 +1,33 @@
+<script>
+	document.addEventListener("DOMContentLoaded", () => {
+		const counts = {};
+		document.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach(h => {
+			let id = h.textContent
+				.toLowerCase()
+				.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F]/gu, "")
+				.replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, "")
+				.replace(/\s+/g, "-")
+				.replace(/-+/g, "-")
+				.replace(/^[-]+|[-]+$/g, "");
+			const n = counts[id] || 0;
+			counts[id] = n + 1;
+			h.id = n ? `${id}-${n}` : id;
+
+			const a = document.createElement("a");
+			a.className = "header-link";
+			a.href = `#${h.id}`;
+
+			const linker = document.createElement("span");
+			linker.className = "linker";
+			linker.innerText = "🔗";
+			a.appendChild(linker);
+
+			const text = document.createElement("span");
+			text.innerText = h.textContent;
+			a.appendChild(text);
+
+			h.innerHTML = "";
+			h.appendChild(a);
+		});
+	});
+</script>

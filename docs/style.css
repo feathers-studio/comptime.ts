@@ -1,0 +1,183 @@
+* {
+	box-sizing: border-box;
+	max-width: 100%;
+}
+
+*::selection {
+	background-color: #34237e;
+	color: #fff;
+}
+
+:root {
+	font-family: Inter, sans-serif;
+	font-feature-settings: "liga" 1, "calt" 1; /* fix for Chrome */
+	font-size: 14px;
+}
+
+@supports (font-variation-settings: normal) {
+	:root {
+		font-family: InterVariable, sans-serif;
+	}
+}
+
+body {
+	background: #000;
+	color: #ddd;
+	margin: auto 8%;
+	word-wrap: break-word;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji",
+		"Segoe UI Emoji", "Segoe UI Symbol";
+	line-height: 1.5;
+
+	max-width: 800px;
+	margin-inline: auto;
+	margin-block: 4rem;
+}
+
+article {
+	display: block;
+}
+
+a {
+	background-color: transparent;
+	-webkit-text-decoration-skip: objects;
+}
+
+a:active,
+a:hover {
+	outline-width: 0;
+}
+
+.header-link {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	text-decoration: none;
+	color: inherit;
+	translate: -1.4rem 0;
+
+	&:hover {
+		text-decoration: none;
+	}
+}
+
+.linker {
+	font-size: 0.8rem;
+	opacity: 0;
+	transition: opacity 0.2s ease-in-out;
+}
+
+.header-link:hover .linker {
+	opacity: 1;
+}
+
+strong {
+	font-weight: inherit;
+}
+
+strong {
+	font-weight: bolder;
+}
+
+img {
+	border-style: none;
+	border-radius: 0.5rem;
+}
+
+code,
+pre {
+	font-family: monospace, monospace;
+	font-size: 1em;
+}
+
+a {
+	color: #7759ff;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+strong {
+	font-weight: 600;
+}
+
+button {
+	cursor: pointer;
+}
+
+h1,
+h2,
+h3 {
+	margin: 2rem 0;
+	color: #ccc;
+	display: inline-block;
+}
+
+h1 {
+	font-size: 2rem;
+	font-weight: 600;
+}
+
+h2 {
+	font-size: 1.5rem;
+	font-weight: 600;
+}
+
+h3 {
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+p {
+	margin-top: 0;
+	margin-bottom: 0.8rem;
+}
+
+blockquote {
+	margin: 0;
+	padding: 0 1em;
+	color: #aaa;
+	border-left: 0.25em solid #dfe2e5;
+}
+
+blockquote > :first-child {
+	margin-top: 0;
+}
+
+blockquote > :last-child {
+	margin-bottom: 0;
+}
+
+pre {
+	padding: 1rem 1.2rem;
+	overflow: auto;
+	background-color: #111;
+	border-radius: 0.5rem;
+}
+
+pre code {
+	background-color: transparent;
+	padding: 0;
+}
+
+code {
+	font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+	padding: 0.2em;
+	margin: 0;
+	background-color: rgba(27, 31, 35, 0.5);
+	border-radius: 0.2rem;
+}
+
+:checked + .radio-label {
+	position: relative;
+	z-index: 1;
+	border-color: #0366d6;
+}
+
+@media print {
+	p {
+		page-break-inside: avoid;
+	}
+}

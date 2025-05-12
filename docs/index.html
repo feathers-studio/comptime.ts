@@ -1,0 +1,225 @@
+<!DOCTYPE html><html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>comptime.ts — compile-time expressions for TypeScript</title>
+	<meta
+		name="description"
+		content="A simple-to-use compiler and Vite plugin to evaluate TypeScript expressions at build time." />
+	<meta name="author" content="Muthu Kumar" />
+	<meta name="keywords" content="TypeScript, comptime, compiler, Vite, plugin, build, time, expression, evaluate" />
+
+	<link rel="icon" href="/favicon.ico" />
+
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://comptime.js.org" />
+	<meta property="og:title" content="comptime.ts — compile-time expressions for TypeScript" />
+	<meta
+		property="og:description"
+		content="A simple-to-use compiler and Vite plugin to evaluate TypeScript expressions at build time." />
+	<meta property="og:image" content="/comptime.ts.jpg" />
+
+	<!-- Twitter -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:url" content="https://comptime.js.org" />
+	<meta name="twitter:title" content="comptime.ts — compile-time expressions for TypeScript" />
+	<meta
+		name="twitter:description"
+		content="A simple-to-use compiler and Vite plugin to evaluate TypeScript expressions at build time." />
+	<meta name="twitter:image" content="/comptime.ts.jpg" />
+
+	<link rel="preconnect" href="https://rsms.me/" />
+	<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+	<link rel="stylesheet" href="style.css" />
+</head>
+<div align="center">
+  <img src="https://raw.githubusercontent.com/feathers-studio/comptime.ts/master/docs/comptime.ts.svg" alt="Hyperactive">
+</div>
+
+<div align="center">
+<h1>⚡️ comptime.ts</h1>
+</div>
+
+<p><a href="https://www.npmjs.com/package/comptime.ts"><img src="https://img.shields.io/npm/v/comptime.ts.svg" alt="npm version"></a>
+<a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
+<p>A dead-simple TypeScript compiler that does one thing really well: enables compile-time evaluation of expressions marked with <code>comptime</code>.</p>
+<p>This is useful for optimising your code by moving computations from runtime to compile time. This project was inspired by <a href="https://bun.sh/docs/bundler/macros">Bun macros</a> and <a href="https://ziglang.org/documentation/master/#Compile-Time-Expressions">Zig comptime</a> (hence the name).</p>
+<blockquote>
+<p><strong>Warning</strong>: You are responsible for ensuring that the expressions you mark with <code>comptime</code> are safe to evaluate at compile time. <code>comptime.ts</code> does not perform any isolation. However, comptime imports are only allowed in project files, and not in node_modules. You may however import from node_modules as comptime.</p>
+</blockquote>
+<h2>Contents</h2>
+<ul>
+<li><a href="#what-is-comptime.ts">What is comptime.ts?</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#forcing-comptime-evaluation-of-arbitrary-expressions">Forcing comptime evaluation</a></li>
+<li><a href="#how-it-works">How it works</a></li>
+<li><a href="#limitations">Limitations</a></li>
+<li><a href="#best-practices">Best practices</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<h2>What is comptime.ts?</h2>
+<p>comptime.ts allows you to evaluate expressions at compile time, similar to compile-time macros in other languages. This can help optimise your code by moving computations from runtime to compile time.</p>
+<h3>Example</h3>
+<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
+import { css } from &quot;./css.ts&quot; with { type: &quot;comptime&quot; };
+
+console.log(sum(1, 2));
+console.log(css`
+  color: red;
+  font-size: 16px;
+`);
+</code></pre>
+<p>Gets compiled to:</p>
+<pre><code class="language-typescript">console.log(3);
+console.log(&quot;h8b3f2c&quot;);
+</code></pre>
+<p>Apart from function calls and tagged template literals, all sorts of expressions are supported (even complex ones like index access and simple ones like imported constants). The only limitation is that the resultant value must be serialisable to JSON.</p>
+<blockquote>
+<p><strong>Note</strong>: The import statements marked with <code>type: &quot;comptime&quot;</code> are removed in the output. We assume you have other tooling (like Vite) to handle other unused redundant statements left behind after comptime evaluation.</p>
+</blockquote>
+<h2>Installation</h2>
+<pre><code class="language-bash">bun add comptime.ts
+
+# or
+
+pnpm add comptime.ts
+
+# or
+
+npm install comptime.ts
+</code></pre>
+<h2>Usage</h2>
+<h3>With Vite</h3>
+<p>Add the plugin to your Vite configuration:</p>
+<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts/vite&quot;;
+
+export default defineConfig({
+	build: {
+		rollupOptions: {
+			plugins: [comptime()],
+		},
+	},
+});
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: We recommend only enabling this in production builds because it will increase build time.</p>
+</blockquote>
+<h3>Command Line Interface</h3>
+<p>You can also use the CLI:</p>
+<pre><code class="language-bash">npx comptime.ts --project tsconfig.json --outdir out
+</code></pre>
+<p>Or use Bun if you prefer:</p>
+<pre><code class="language-bash">bunx --bun comptime.ts --project tsconfig.json --outdir out
+</code></pre>
+<h3>Without Vite</h3>
+<p>Use the API directly:</p>
+<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts&quot;;
+
+await comptime(&quot;tsconfig.json&quot;, &quot;./out&quot;);
+</code></pre>
+<h2>Forcing comptime evaluation of arbitrary expressions</h2>
+<p>We can abuse the fact that any function imported with the <code>type: &quot;comptime&quot;</code> option will be evaluated at compile time.</p>
+<p>This library exports a <code>comptime</code> function that can be used to force comptime evaluation of an expression. This function is a no-op that simply returns the value it was given. But as long as you import it with the <code>type: &quot;comptime&quot;</code> option, it will be evaluated at compile time, including any expressions it contains.</p>
+<pre><code class="language-ts">import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
+</code></pre>
+<p>Use it to force comptime evaluation of an expression.</p>
+<pre><code class="language-ts">const x = comptime(1 + 2);
+</code></pre>
+<p>When the compiler is run, the expression will be evaluated at compile time.</p>
+<pre><code class="language-ts">const x = 3;
+</code></pre>
+<h2>How it Works</h2>
+<p><code>comptime.ts</code> works by:</p>
+<ol>
+<li>Parsing your TypeScript code to find imports marked with <code>type: &quot;comptime&quot;</code></li>
+<li>Finding all expressions in your files that use these imports</li>
+<li>Collecting an execution block by walking up the file to find all references used by the comptime expression</li>
+<li>Evaluating the execution block in an isolated context at compile time</li>
+<li>Replacing the comptime expression with the result of the execution block</li>
+</ol>
+<h2>Limitations</h2>
+<ul>
+<li>Only JSON-serialisable values can be returned from comptime expressions</li>
+<li>The evaluation context is isolated, so certain runtime features might not be available</li>
+<li>Complex expressions might increase build time significantly</li>
+<li>Type information is not available during evaluation</li>
+</ul>
+<h2>Best Practices</h2>
+<ul>
+<li>Use comptime for:<ul>
+<li>Computing constant values</li>
+<li>Generating static content</li>
+<li>Optimising performance-critical code</li>
+</ul>
+</li>
+<li>Avoid using comptime for:<ul>
+<li>Complex runtime logic</li>
+<li>Side effects</li>
+<li>Non-deterministic operations</li>
+</ul>
+</li>
+</ul>
+<h2>Troubleshooting</h2>
+<ol>
+<li><p><strong>Redundant code not removed</strong></p>
+<ul>
+<li><code>comptime.ts</code> removes imports marked with <code>type: &quot;comptime&quot;</code> and replaces comptime expressions.</li>
+<li>However, it does not remove other redundant code that might be left behind after compilation.</li>
+<li>Use other tooling (like Vite) to handle such cleanup after the fact.</li>
+<li><code>comptime.ts</code> is available as a standalone CLI, JavaScript API and Vite plugin. If you&#39;d like <code>comptime.ts</code> to integrate with other tooling, please let us know via an issue or raise a PR!</li>
+</ul>
+</li>
+<li><p><strong>My comptime expression was not replaced</strong></p>
+<ul>
+<li>Check that the import has <code>{ type: &quot;comptime&quot; }</code></li>
+<li>Ensure the expression is JSON-serialisable</li>
+<li>Verify all dependencies are available at compile time</li>
+</ul>
+</li>
+<li><p><strong>Build time too slow</strong></p>
+<ul>
+<li>Consider moving complex computations to runtime</li>
+<li>Break down large expressions into smaller ones</li>
+<li>Use the <code>include</code>/<code>exclude</code> options to limit scope</li>
+</ul>
+</li>
+</ol>
+<h2>License</h2>
+<p>MIT</p>
+
+<script>
+	document.addEventListener("DOMContentLoaded", () => {
+		const counts = {};
+		document.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach(h => {
+			let id = h.textContent
+				.toLowerCase()
+				.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F]/gu, "")
+				.replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, "")
+				.replace(/\s+/g, "-")
+				.replace(/-+/g, "-")
+				.replace(/^[-]+|[-]+$/g, "");
+			const n = counts[id] || 0;
+			counts[id] = n + 1;
+			h.id = n ? `${id}-${n}` : id;
+
+			const a = document.createElement("a");
+			a.className = "header-link";
+			a.href = `#${h.id}`;
+
+			const linker = document.createElement("span");
+			linker.className = "linker";
+			linker.innerText = "🔗";
+			a.appendChild(linker);
+
+			const text = document.createElement("span");
+			text.innerText = h.textContent;
+			a.appendChild(text);
+
+			h.innerHTML = "";
+			h.appendChild(a);
+		});
+	});
+</script>
+</html>

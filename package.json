@@ -13,8 +13,7 @@
 	"scripts": {
 		"test": "bun test tests/comptime.test.ts",
 		"check": "tsc --noEmit",
-		"emit": "tsc",
-		"prepare": "tsc"
+		"prepare": "tsc && ./docs/build.sh"
 	},
 	"files": [
 		"lib"
@@ -45,7 +44,8 @@
 		"typescript": "^5"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"marked": "^15.0.11"
 	},
 	"optionalDependencies": {
 		"vite": "^6"
