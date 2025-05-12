@@ -1,8 +1,8 @@
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { mkdir, writeFile, rm } from "fs/promises";
+import { mkdir, readFile, writeFile, rm } from "fs/promises";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { comptime } from "../src/index.ts";
+import { comptimeCompiler } from "../src/index.ts";
 import * as ts from "typescript";
 
 const randId = () => Math.random().toString(36).substring(2, 15);
@@ -23,7 +23,8 @@ describe("comptime", () => {
 					"moduleResolution": "bundler",
 					"outDir": "./out"
 				},
-				"include": ["*.ts"]
+				"include": ["./**/*.ts"],
+				"exclude": ["exclude/**"]
 			}
 			`,
 		);
@@ -37,6 +38,13 @@ describe("comptime", () => {
 		const path = join(temp, name);
 		await writeFile(path, content);
 		return path;
+	};
+
+	const getCompiled = async (name: string) => {
+		const tsconfigPath = join(temp, "tsconfig.json");
+		const outdir = join(temp, "out");
+		await comptimeCompiler({ tsconfigPath }, outdir);
+		return await readFile(resolve(outdir, name), "utf-8");
 	};
 
 	it("should work", async () => {
@@ -54,12 +62,7 @@ describe("comptime", () => {
 			`,
 		);
 
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
-
+		const result = await getCompiled("foo.ts");
 		const expected = `
 				import { sum } from "./bar.ts" with { type: "comptime" };
 				console.log(3);
@@ -90,10 +93,7 @@ describe("comptime", () => {
 		`,
 		);
 
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import { sum } from "./bar.ts" with { type: "comptime" };
 			import { mul } from "./baz.ts" with { type: "comptime" };
@@ -117,10 +117,8 @@ describe("comptime", () => {
 			export function sub(a: number, b: number) { return a - b; }
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import { sub } from "./nested/bar.ts" with { type: "comptime" };
 			console.log(2);
@@ -135,10 +133,8 @@ describe("comptime", () => {
 			console.log('no comptime here');
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			console.log('no comptime here');
 		`;
@@ -159,10 +155,8 @@ describe("comptime", () => {
 			export const x = 1 + 1;
 			`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import { x } from "./bar.ts" with { type: "comptime" };
 			console.log(2);
@@ -185,10 +179,8 @@ describe("comptime", () => {
 			export type Foo = { a: number };
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import type { Foo } from "./types.ts";
 			const x: Foo = { a: 1 };
@@ -201,7 +193,7 @@ describe("comptime", () => {
 			"foo.ts",
 			`
 			import { sum } from "./bar.ts" with { type: "comptime" };
-			console.log(sum(1 2)); // missing comma
+			console.log(sum(1 2 3)); // missing comma
 		`,
 		);
 		await file(
@@ -210,9 +202,7 @@ describe("comptime", () => {
 			export function sum(a: number, b: number) { return a + b; }
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		expect(comptime(tsconfigPath, outdir)).rejects.toThrow();
+		expect(getCompiled("foo.ts")).rejects.toThrow();
 	});
 
 	it("should ignore non-TS files in the directory", async () => {
@@ -223,10 +213,8 @@ describe("comptime", () => {
 		`,
 		);
 		await file("notats.txt", `this is not a ts file`);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			console.log('hello');
 		`;
@@ -253,10 +241,8 @@ describe("comptime", () => {
 			};
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import { o } from "./bar.ts" with { type: "comptime" };
 			console.log(1 + 2 + 12);
@@ -283,10 +269,8 @@ describe("comptime", () => {
 			};
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import { o } from "./bar.ts" with { type: "comptime" };
 			console.log((1).toString());
@@ -308,10 +292,8 @@ describe("comptime", () => {
 			export const x = void 0;
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import { x } from "./bar.ts" with { type: "comptime" };
 			console.log(undefined);
@@ -335,10 +317,8 @@ describe("comptime", () => {
 			};
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import { console } from "./console.ts" with { type: "comptime" };
 			undefined;
@@ -360,10 +340,8 @@ describe("comptime", () => {
 			export const t = (xs: string[]) => xs.join("");
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import { t } from "./bar.ts" with { type: "comptime" };
 			console.log("hello");
@@ -385,13 +363,112 @@ describe("comptime", () => {
 			export const t = (xs: TemplateStringsArray, ...ys: number[]) => String.raw(xs, ...ys);
 		`,
 		);
-		const tsconfigPath = join(temp, "tsconfig.json");
-		const outdir = join(temp, "out");
-		await comptime(tsconfigPath, outdir);
-		const result = ts.sys.readFile(resolve(outdir, "foo.ts"));
+
+		const result = await getCompiled("foo.ts");
 		const expected = `
 			import { t } from "./bar.ts" with { type: "comptime" };
 			console.log("hello 5!");
+		`;
+		expect(result).toEqual(expected);
+	});
+
+	it("should force comptime evaluation of an expression", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			const x = comptime(1 + 2);
+			console.log(x);
+		`,
+		);
+
+		const result = await getCompiled("foo.ts");
+		const expected = `
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			const x = 3;
+			console.log(x);
+		`;
+		expect(result).toEqual(expected);
+	});
+
+	it("should force comptime evaluation of a complex expression", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			import { o } from "./bar.ts" with { type: "comptime" };
+			console.log(comptime(o.foo + o.bar.baz + o.bar.qux.reduce((a, b) => a + b, 0)));
+		`,
+		);
+		await file(
+			"bar.ts",
+			`
+			export const o = {
+				foo: 1,
+				bar: {
+					baz: 2,
+					qux: [3, 4, 5],
+				},
+			};
+		`,
+		);
+
+		const result = await getCompiled("foo.ts");
+		const expected = `
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			import { o } from "./bar.ts" with { type: "comptime" };
+			console.log(15);
+		`;
+		expect(result).toEqual(expected);
+	});
+
+	it("should evaluate asynchronous expressions", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+			const x = comptime(await sleep(1000).then(() => 1 + 2));
+			console.log(x);
+		`,
+		);
+
+		const result = await getCompiled("foo.ts");
+		const expected = `
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+			const x = 3;
+			console.log(x);
+		`;
+		expect(result).toEqual(expected);
+	});
+
+	it("should handle different import types", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { x } from "./bar.ts" with { type: "comptime" };
+			import * as bar from "./bar.ts" with { type: "comptime" };
+			import defaultBar from "./bar.ts" with { type: "comptime" };
+			import { x as y } from "./bar.ts" with { type: "comptime" };
+			console.log(x, bar.x, defaultBar, y);
+		`,
+		);
+		await file(
+			"bar.ts",
+			`
+			export const x = 1;
+			export default 2;
+		`,
+		);
+
+		const result = await getCompiled("foo.ts");
+		const expected = `
+			import { x } from "./bar.ts" with { type: "comptime" };
+			import * as bar from "./bar.ts" with { type: "comptime" };
+			import defaultBar from "./bar.ts" with { type: "comptime" };
+			import { x as y } from "./bar.ts" with { type: "comptime" };
+			console.log(1, 1, 2, 1);
 		`;
 		expect(result).toEqual(expected);
 	});
