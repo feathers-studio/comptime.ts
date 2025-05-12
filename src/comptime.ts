@@ -415,6 +415,12 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 					}
 				}
 
+				const removeImports = comptimeImports.map(i => ({
+					start: i.getStart(file),
+					end: i.getEnd(),
+					replacement: "",
+				}));
+
 				const replacements = filteredTargets.map(async ({ node: target }) => {
 					let evalProgram: string = "";
 					let transpiled: string = "";
@@ -444,7 +450,7 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 					return { start: target.getStart(file), end: target.getEnd(), replacement: result };
 				});
 
-				return [resolved, await Promise.all(replacements)] as const;
+				return [resolved, [...removeImports, ...(await Promise.all(replacements))]] as const;
 			}),
 		),
 	);
@@ -464,7 +470,6 @@ export async function applyComptimeReplacements(opts: ApplyComptimeReplacementsO
 	);
 
 	const outdir = opts.outdir ?? path.join(configDir, "build");
-	console.log("Skipping node_modules");
 
 	for await (const file of program.getSourceFiles()) {
 		const resolved = path.resolve(file.fileName);

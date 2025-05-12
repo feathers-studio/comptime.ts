@@ -47,16 +47,13 @@ console.log(css`
 Gets compiled to:
 
 ```typescript
-import { sum } from "./sum.ts" with { type: "comptime" };
-import { css } from "./css.ts" with { type: "comptime" };
-
 console.log(3);
 console.log("h8b3f2c");
 ```
 
-Apart from function calls and tagged template literals, all sorts of expressions are supported, as long as the resultant value is serialisable to JSON.
+Apart from function calls and tagged template literals, all sorts of expressions are supported (even complex ones like index access and simple ones like imported constants). The only limitation is that the resultant value must be serialisable to JSON.
 
-> **Note**: The import statement remains in the output even though the expression was resolved at compile time. We assume you have other tooling (like Vite) to handle unused import removal.
+> **Note**: The import statements marked with `type: "comptime"` are removed in the output. We assume you have other tooling (like Vite) to handle other unused redundant statements left behind after comptime evaluation.
 
 ## Installation
 
@@ -164,13 +161,12 @@ const x = 3;
 
 ## Troubleshooting
 
-1. **Redundant imports not removed**
+1. **Redundant code not removed**
 
-    - `comptime.ts` only replaces comptime expressions.
-    - It does not remove imports or clean up unused code afterwards.
+    - `comptime.ts` removes imports marked with `type: "comptime"` and replaces comptime expressions.
+    - However, it does not remove other redundant code that might be left behind after compilation.
     - Use other tooling (like Vite) to handle such cleanup after the fact.
-    - `comptime.ts` is available as a standalone CLI, JavaScript API and Vite plugin.
-    - If you'd like `comptime.ts` to integrate with other tooling, please let us know via an issue or raise a PR!
+    - `comptime.ts` is available as a standalone CLI, JavaScript API and Vite plugin. If you'd like `comptime.ts` to integrate with other tooling, please let us know via an issue or raise a PR!
 
 1. **My comptime expression was not replaced**
 

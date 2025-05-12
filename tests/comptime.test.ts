@@ -66,7 +66,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-				import { sum } from "./bar.ts" with { type: "comptime" };
+				
 				console.log(3);
 			`;
 
@@ -97,8 +97,8 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { sum } from "./bar.ts" with { type: "comptime" };
-			import { mul } from "./baz.ts" with { type: "comptime" };
+			
+			
 			console.log(3 + 6);
 		`;
 		expect(result).toEqual(expected);
@@ -122,7 +122,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { sub } from "./nested/bar.ts" with { type: "comptime" };
+			
 			console.log(2);
 		`;
 		expect(result).toEqual(expected);
@@ -160,7 +160,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { x } from "./bar.ts" with { type: "comptime" };
+			
 			console.log(2);
 			`;
 		expect(result).toEqual(expected);
@@ -246,7 +246,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { o } from "./bar.ts" with { type: "comptime" };
+			
 			console.log(1 + 2 + 12);
 		`;
 		expect(result).toEqual(expected);
@@ -274,7 +274,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { o } from "./bar.ts" with { type: "comptime" };
+			
 			console.log((1).toString());
 		`;
 		expect(result).toEqual(expected);
@@ -297,7 +297,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { x } from "./bar.ts" with { type: "comptime" };
+			
 			console.log(undefined);
 		`;
 		expect(result).toEqual(expected);
@@ -322,7 +322,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { console } from "./console.ts" with { type: "comptime" };
+			
 			undefined;
 		`;
 		expect(result).toEqual(expected);
@@ -345,7 +345,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { t } from "./bar.ts" with { type: "comptime" };
+			
 			console.log("hello");
 		`;
 		expect(result).toEqual(expected);
@@ -368,7 +368,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { t } from "./bar.ts" with { type: "comptime" };
+			
 			console.log("hello 5!");
 		`;
 		expect(result).toEqual(expected);
@@ -387,7 +387,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { comptime } from "comptime.ts" with { type: "comptime" };
+			
 			const x = 3;
 			console.log(x);
 		`;
@@ -419,8 +419,8 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { comptime } from "comptime.ts" with { type: "comptime" };
-			import { o } from "./bar.ts" with { type: "comptime" };
+			
+			
 			console.log(15);
 		`;
 		expect(result).toEqual(expected);
@@ -440,7 +440,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { comptime } from "comptime.ts" with { type: "comptime" };
+			
 			const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 			const x = 3;
 			console.log(x);
@@ -469,10 +469,10 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { x } from "./bar.ts" with { type: "comptime" };
-			import * as bar from "./bar.ts" with { type: "comptime" };
-			import defaultBar from "./bar.ts" with { type: "comptime" };
-			import { x as y } from "./bar.ts" with { type: "comptime" };
+			
+			
+			
+			
 			console.log(1, 1, 2, 1);
 		`;
 		expect(result).toEqual(expected);
@@ -491,7 +491,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { comptime } from "comptime.ts" with { type: "comptime" };
+			
 			export const y = 2;
 			console.log(4);
 		`;
@@ -514,7 +514,7 @@ describe("comptime", () => {
 
 		const result = await getCompiled("foo.ts");
 		const expected = `
-			import { x } from "bar" with { type: "comptime" };
+			
 			console.log(2);
 		`;
 		expect(result).toEqual(expected);
