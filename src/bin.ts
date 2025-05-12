@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from "node:util";
-import { comptime } from "./index.ts";
+import { comptimeCompiler } from "./index.ts";
 
 const args = parseArgs({
 	options: {
@@ -18,7 +18,7 @@ const args = parseArgs({
 	},
 });
 
-const tsconfig = args.values.project;
+const tsconfigPath = args.values.project;
 const outdir = args.values.outdir;
 
-await comptime(tsconfig, outdir);
+await comptimeCompiler({ tsconfigPath }, outdir);
