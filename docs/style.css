@@ -49,7 +49,7 @@ a:hover {
 }
 
 .header-link {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
 	gap: 0.4rem;
 	text-decoration: none;
@@ -110,9 +110,8 @@ button {
 h1,
 h2,
 h3 {
-	margin: 2rem 0;
+	margin: 1rem 0;
 	color: #ccc;
-	display: inline-block;
 }
 
 h1 {
@@ -131,8 +130,7 @@ h3 {
 }
 
 p {
-	margin-top: 0;
-	margin-bottom: 0.8rem;
+	margin-block: 1.4rem;
 }
 
 blockquote {
@@ -174,6 +172,12 @@ code {
 	position: relative;
 	z-index: 1;
 	border-color: #0366d6;
+}
+
+ul,
+ol {
+	padding-inline-start: 1.8rem;
+	margin: 0;
 }
 
 @media print {
