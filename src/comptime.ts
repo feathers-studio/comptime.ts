@@ -17,7 +17,33 @@ export interface Replacement {
 
 export type Replacements = Record<string, Replacement[]>;
 
-export function query<R extends ts.Node>(root: ts.Node, query: ts.SyntaxKind, filter?: (node: R) => boolean): R[] {
+export function assertNoSyntaxErrors(tsCode: string) {
+	const fileName = "eval.ts";
+	const compilerOptions: ts.CompilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext };
+	const host = ts.createCompilerHost(compilerOptions);
+	host.getSourceFile = (fileName_, languageVersion) =>
+		fileName_ === fileName
+			? ts.createSourceFile(fileName, tsCode, languageVersion, true, ts.ScriptKind.TS)
+			: undefined;
+
+	const program = ts.createProgram([fileName], compilerOptions, host);
+	const diagnostics = program.getSyntacticDiagnostics();
+
+	if (diagnostics.length > 0) {
+		throw new Error(
+			"Syntax error in comptime eval block:\n" +
+				diagnostics.map(d => ts.flattenDiagnosticMessageText(d.messageText, "\n")).join("\n"),
+		);
+	}
+}
+
+export function eraseTypes(tsCode: string): string {
+	return ts
+		.transpileModule(tsCode, {
+			compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext, noEmitOnError: true },
+		})
+		.outputText.trim();
+}
 	const results: R[] = [];
 	const visit = (node: ts.Node) => {
 		if (node.kind === query) {
@@ -30,6 +56,16 @@ export function query<R extends ts.Node>(root: ts.Node, query: ts.SyntaxKind, fi
 	};
 	visit(root);
 	return results;
+}
+
+function getEnclosingImportDeclaration(node: ts.Node): ts.ImportDeclaration {
+	while (node && !ts.isImportDeclaration(node)) node = node.parent!;
+	return node;
+}
+
+function getEnclosingStatement(node: ts.Node): ts.Statement {
+	while (node && !ts.isStatement(node)) node = node.parent!;
+	return node as ts.Statement;
 }
 
 type ImportNode = ts.ImportSpecifier | ts.ImportClause | ts.NamespaceImport;
@@ -215,21 +251,41 @@ export async function getComptimeReplacements(opts?: { tsconfigPath?: string }):
 							// Choose foo`bar` instead of foo
 							(ts.isTaggedTemplateExpression(parent) && parent.tag === current)
 
-							// We deliberately chose not to include ParenthesizedExpression.
-							// Advanced users can use this to opt-out of walking up the chain
-							// (foo).bar will only evaluate foo
+							/*
+								We deliberately chose not to include ParenthesizedExpression.
+								Advanced users can use this to opt-out of walking up the chain
+								(foo).bar will only evaluate foo
+							*/
 						) {
 							current = parent;
 						} else {
 							break;
 						}
 					}
-					const target = current;
 
-					const expression = await getExpression(checker, file, target);
-					const func = new Function(`return async function evaluate() { ${expression} };`)();
-					const result = JSON.stringify(await func()) ?? "undefined";
+				const replacements = filteredTargets.map(async ({ node: target }) => {
+					let evalProgram: string = "";
+					let transpiled: string = "";
+					let resolved: unknown;
+					try {
+						evalProgram = await getEvaluation(checker, file, target);
+						assertNoSyntaxErrors(evalProgram);
+						transpiled = eraseTypes(evalProgram);
+						const func = new Function(`return async function evaluate() { ${transpiled} };`)();
+						resolved = await func();
+					} catch (e) {
+						console.error("An error occurred while evaluating the following code:");
+						if (e instanceof Error) console.error(e.message);
+						if (evalProgram || transpiled) {
+							console.error("---");
+							console.error(transpiled || evalProgram);
+							console.error("---\n");
+						}
 
+						const marker = `${file.fileName}:${target.getStart(file)}:${target.getEnd()}`;
+						throw new Error(`Error evaluating ${target.getText()} at ${marker}: ${e}`);
+					}
+					const result = JSON.stringify(resolved) ?? "undefined";
 					return { start: target.getStart(file), end: target.getEnd(), replacement: result };
 				});
 
