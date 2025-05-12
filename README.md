@@ -97,6 +97,12 @@ You can also use the CLI:
 npx comptime.ts --project tsconfig.json --outdir out
 ```
 
+Or use Bun if you prefer:
+
+```bash
+bunx --bun comptime.ts --project tsconfig.json --outdir out
+```
+
 ### Without Vite
 
 Use the API directly:
@@ -111,9 +117,7 @@ await comptime("tsconfig.json", "./out");
 
 We can abuse the fact that any function imported with the `type: "comptime"` option will be evaluated at compile time.
 
-This library exports a `comptime` function that can be used to force comptime evaluation of an expression. This function is a no-op that simply returns the value it was given.
-
-But as long as you import it with the `type: "comptime"` option, it will be evaluated at compile time, including any expressions it contains.
+This library exports a `comptime` function that can be used to force comptime evaluation of an expression. This function is a no-op that simply returns the value it was given. But as long as you import it with the `type: "comptime"` option, it will be evaluated at compile time, including any expressions it contains.
 
 ```ts
 import { comptime } from "comptime.ts" with { type: "comptime" };
@@ -143,7 +147,7 @@ const x = 3;
 
 ## Limitations
 
--   Only JSON-serializable values can be returned from comptime expressions
+-   Only JSON-serialisable values can be returned from comptime expressions
 -   The evaluation context is isolated, so certain runtime features might not be available
 -   Complex expressions might increase build time significantly
 -   Type information is not available during evaluation
@@ -171,7 +175,7 @@ const x = 3;
 1. **My comptime expression was not replaced**
 
     - Check that the import has `{ type: "comptime" }`
-    - Ensure the expression is JSON-serializable
+    - Ensure the expression is JSON-serialisable
     - Verify all dependencies are available at compile time
 
 1. **Build time too slow**
