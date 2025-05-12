@@ -2,15 +2,15 @@ import { readFile } from "node:fs/promises";
 
 import type { Plugin } from "vite";
 import MagicString from "magic-string";
-import { type Replacements, getComptimeReplacements } from "./comptime.ts";
+import { type GetComptimeReplacementsOpts, type Replacements, getComptimeReplacements } from "./comptime.ts";
 
-export async function comptime(tsconfigPath?: string): Promise<Plugin> {
+export async function comptime(opts?: GetComptimeReplacementsOpts): Promise<Plugin> {
 	let replacements: Replacements;
 
 	return {
 		name: "vite-plugin-comptime",
 		async buildStart() {
-			replacements = await getComptimeReplacements({ tsconfigPath });
+			replacements = await getComptimeReplacements(opts);
 		},
 		async load(id) {
 			const replacement = replacements[id];

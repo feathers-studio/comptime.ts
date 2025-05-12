@@ -25,6 +25,6 @@
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false
 	},
-	"include": ["./**/*.ts"],
+	"include": ["producer.ts", "consumer.ts"],
 	"exclude": ["node_modules", "./out/**"]
 }
