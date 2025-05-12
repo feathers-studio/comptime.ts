@@ -45,6 +45,8 @@ export function eraseTypes(tsCode: string): string {
 		})
 		.outputText.trim();
 }
+
+export function query<R extends ts.Node>(root: ts.Node, query: ts.SyntaxKind, filter?: (node: R) => boolean): R[] {
 	const results: R[] = [];
 	const visit = (node: ts.Node) => {
 		if (node.kind === query) {
