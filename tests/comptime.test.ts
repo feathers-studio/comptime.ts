@@ -472,4 +472,23 @@ describe("comptime", () => {
 		`;
 		expect(result).toEqual(expected);
 	});
+
+	it("should work even if some statements are export declarations", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			export const y = 2;
+			console.log(comptime(y + y));
+		`,
+		);
+
+		const result = await getCompiled("foo.ts");
+		const expected = `
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			export const y = 2;
+			console.log(4);
+		`;
+		expect(result).toEqual(expected);
+	});
 });

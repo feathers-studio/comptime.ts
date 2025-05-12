@@ -174,6 +174,29 @@ const getImportLine = async (imp: ts.ImportSpecifier | ts.ImportClause | ts.Name
 	throw new Error("Unsupported import type for comptime evaluation.");
 };
 
+function stripExportModifier(node: ts.Statement): string {
+	let text = node.getText();
+
+	const modifiers = ("modifiers" in node && node.modifiers ? node.modifiers : undefined) as
+		| ts.NodeArray<ts.ModifierLike>
+		| undefined;
+
+	if (!modifiers?.length) return text;
+
+	const bounds = modifiers
+		.filter(m => m.kind === ts.SyntaxKind.ExportKeyword)
+		.map(m => ({ start: m.getStart(), end: m.getEnd() }))
+		.sort((a, b) => a.start - b.start);
+
+	if (!bounds.length) return text;
+
+	const stmtStart = node.getStart();
+	const start = bounds.at(0)!.start - stmtStart;
+	const end = bounds.at(-1)!.end - stmtStart;
+
+	return text.slice(0, start) + text.slice(end).trim();
+}
+
 async function getEvaluation(checker: ts.TypeChecker, sourceFile: ts.SourceFile, node: ts.Node) {
 	const expression = node.getText();
 	const identifiers = query<ts.Identifier>(node, ts.SyntaxKind.Identifier);
@@ -187,7 +210,7 @@ async function getEvaluation(checker: ts.TypeChecker, sourceFile: ts.SourceFile,
 	});
 
 	const declLines = await Promise.all(
-		sorted.map(each => (isImportNode(each) ? getImportLine(each) : each.getText().trim())),
+		sorted.map(each => (isImportNode(each) ? getImportLine(each) : stripExportModifier(each))),
 	);
 
 	return declLines.join("\n") + "\n" + `return ${expression};`;
@@ -218,11 +241,15 @@ export async function getComptimeReplacements(opts?: {
 	);
 	const checker = program.getTypeChecker();
 
+	const allowedFiles = new Set(options.fileNames.map(f => path.resolve(f)));
+
 	return Object.fromEntries(
 		await Promise.all(
 			program.getSourceFiles().map(async file => {
-				if (isNodeModules(file.fileName)) return [file.fileName, []];
-				if (!filter(file.fileName)) return [file.fileName, []];
+				const resolved = path.resolve(file.fileName);
+				if (!allowedFiles.has(resolved)) return [resolved, []];
+				if (isNodeModules(resolved)) return [resolved, []];
+				if (!filter(resolved)) return [resolved, []];
 
 				const comptimeImports = query<ts.ImportDeclaration>(file, ts.SyntaxKind.ImportDeclaration, each => {
 					const elements = each.attributes?.elements;
@@ -340,14 +367,14 @@ export async function getComptimeReplacements(opts?: {
 							console.error("---\n");
 						}
 
-						const marker = `${file.fileName}:${target.getStart(file)}:${target.getEnd()}`;
+						const marker = `${resolved}:${target.getStart(file)}:${target.getEnd()}`;
 						throw new Error(`Error evaluating ${target.getText()} at ${marker}: ${e}`);
 					}
 					const result = JSON.stringify(resolved) ?? "undefined";
 					return { start: target.getStart(file), end: target.getEnd(), replacement: result };
 				});
 
-				return [file.fileName, await Promise.all(replacements)] as const;
+				return [resolved, await Promise.all(replacements)] as const;
 			}),
 		),
 	);
@@ -369,10 +396,11 @@ export async function applyComptimeReplacements(
 	console.log("Skipping node_modules");
 
 	for await (const file of program.getSourceFiles()) {
-		if (file.fileName.includes("/node_modules/")) continue;
+		const resolved = path.resolve(file.fileName);
+		if (resolved.includes("/node_modules/")) continue;
 
 		const s = new MagicString(file.getFullText());
-		const fullPath = path.resolve(path.dirname(config), file.fileName);
+		const fullPath = path.resolve(path.dirname(config), resolved);
 
 		const repl = replacements[fullPath];
 		if (!repl) continue;
