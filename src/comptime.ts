@@ -185,7 +185,7 @@ async function getEvaluation(checker: ts.TypeChecker, sourceFile: ts.SourceFile,
 	});
 
 	const declLines = await Promise.all(
-		sorted.map(each => (ts.isImportSpecifier(each) ? getImportLine(each) : each.getText().trim())),
+		sorted.map(each => (isImportNode(each) ? getImportLine(each) : each.getText().trim())),
 	);
 
 	return declLines.join("\n") + "\n" + `return ${expression};`;
@@ -232,7 +232,11 @@ export async function getComptimeReplacements(opts?: {
 				});
 
 				const comptimeConsumers = query<ts.Identifier>(file, ts.SyntaxKind.Identifier, each => {
-					if (ts.isImportSpecifier(each.parent)) return false;
+					const parent = each.parent;
+					// exclude import declarations from being considered consumers
+					if (ts.isImportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent)) {
+						return false;
+					}
 
 					const symbol = checker.getSymbolAtLocation(each);
 					const decls = symbol?.declarations;
@@ -240,13 +244,27 @@ export async function getComptimeReplacements(opts?: {
 
 					return decls.some(decl => {
 						if (ts.isImportSpecifier(decl)) {
+							// Named import: import { foo } from ...
 							return comptimeImports.some(importDecl =>
 								query<ts.ImportSpecifier>(importDecl, ts.SyntaxKind.ImportSpecifier).some(
-									spec => spec.name.getText() === decl.name.getText(),
+									spec => spec === decl,
+								),
+							);
+						} else if (ts.isNamespaceImport(decl)) {
+							// Namespace import: import * as foo from ...
+							return comptimeImports.some(importDecl =>
+								query<ts.NamespaceImport>(importDecl, ts.SyntaxKind.NamespaceImport).some(
+									ns => ns === decl,
+								),
+							);
+						} else if (ts.isImportClause(decl) && decl.name) {
+							// Default import: import foo from ...
+							return comptimeImports.some(importDecl =>
+								query<ts.ImportClause>(importDecl, ts.SyntaxKind.ImportClause).some(
+									clause => clause === decl,
 								),
 							);
 						}
-
 						return false;
 					});
 				});
@@ -330,7 +348,8 @@ export async function applyComptimeReplacements(
 		const s = new MagicString(file.getFullText());
 		const fullPath = path.resolve(path.dirname(config), file.fileName);
 
-		const repl = replacements[fullPath] ?? [];
+		const repl = replacements[fullPath];
+		if (!repl) continue;
 
 		for (const replacement of repl) {
 			s.overwrite(replacement.start, replacement.end, replacement.replacement);
