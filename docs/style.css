@@ -20,11 +20,6 @@
 	}
 }
 
-html {
-	display: grid;
-	place-items: center;
-}
-
 body {
 	background: #000;
 	color: #ddd;
@@ -34,8 +29,13 @@ body {
 	line-height: 1.5;
 
 	max-width: 800px;
-	margin-inline: 4rem;
-	margin-block: 4rem;
+	margin-inline: auto;
+	margin-block: 0;
+	padding: 2rem 2rem;
+
+	@media screen and (min-width: 800px) {
+		padding-block: 4rem;
+	}
 }
 
 article {
