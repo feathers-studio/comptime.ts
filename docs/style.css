@@ -1,3 +1,10 @@
+:root {
+	font-family: Inter, sans-serif;
+	font-feature-settings: "liga" 1, "calt" 1; /* fix for Chrome */
+	font-size: 14px;
+	scroll-behavior: smooth;
+}
+
 * {
 	box-sizing: border-box;
 	max-width: 100%;
@@ -6,12 +13,6 @@
 *::selection {
 	background-color: #34237e;
 	color: #fff;
-}
-
-:root {
-	font-family: Inter, sans-serif;
-	font-feature-settings: "liga" 1, "calt" 1; /* fix for Chrome */
-	font-size: 14px;
 }
 
 @supports (font-variation-settings: normal) {

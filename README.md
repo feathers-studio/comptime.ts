@@ -20,6 +20,9 @@ This is useful for optimising your code by moving computations from runtime to c
 -   [What is comptime.ts?](#what-is-comptime.ts)
 -   [Installation](#installation)
 -   [Usage](#usage)
+    -   [With Vite](#with-vite)
+    -   [Command Line Interface](#command-line-interface)
+    -   [Via API](#via-api)
 -   [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions)
 -   [How it works](#how-it-works)
 -   [Limitations](#limitations)
@@ -103,14 +106,14 @@ Or use Bun if you prefer:
 bunx --bun comptime.ts --project tsconfig.json --outdir out
 ```
 
-### Without Vite
+### Via API
 
 Use the API directly:
 
 ```typescript
-import { comptime } from "comptime.ts";
+import { comptimeCompiler } from "comptime.ts";
 
-await comptime("tsconfig.json", "./out");
+await comptimeCompiler({ tsconfigPath: "tsconfig.json" }, "./out");
 ```
 
 ## Forcing comptime evaluation of arbitrary expressions

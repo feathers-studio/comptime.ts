@@ -55,7 +55,12 @@
 <ul>
 <li><a href="#what-is-comptime.ts">What is comptime.ts?</a></li>
 <li><a href="#installation">Installation</a></li>
-<li><a href="#usage">Usage</a></li>
+<li><a href="#usage">Usage</a><ul>
+<li><a href="#with-vite">With Vite</a></li>
+<li><a href="#command-line-interface">Command Line Interface</a></li>
+<li><a href="#via-api">Via API</a></li>
+</ul>
+</li>
 <li><a href="#forcing-comptime-evaluation-of-arbitrary-expressions">Forcing comptime evaluation</a></li>
 <li><a href="#how-it-works">How it works</a></li>
 <li><a href="#limitations">Limitations</a></li>
@@ -117,11 +122,11 @@ export default defineConfig({
 <p>Or use Bun if you prefer:</p>
 <pre><code class="language-bash">bunx --bun comptime.ts --project tsconfig.json --outdir out
 </code></pre>
-<h3>Without Vite</h3>
+<h3>Via API</h3>
 <p>Use the API directly:</p>
-<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts&quot;;
+<pre><code class="language-typescript">import { comptimeCompiler } from &quot;comptime.ts&quot;;
 
-await comptime(&quot;tsconfig.json&quot;, &quot;./out&quot;);
+await comptimeCompiler({ tsconfigPath: &quot;tsconfig.json&quot; }, &quot;./out&quot;);
 </code></pre>
 <h2>Forcing comptime evaluation of arbitrary expressions</h2>
 <p>We can abuse the fact that any function imported with the <code>type: &quot;comptime&quot;</code> option will be evaluated at compile time.</p>
