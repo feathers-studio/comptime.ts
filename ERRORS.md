@@ -128,9 +128,9 @@ This error implies that an evaluation context was created, but it failed to eval
 
 It could due to:
 
--   An error thrown by any called function
--   Logical errors in the comptime expression
--   A dependency that cannot be resolved at compile time
+-   An error was thrown while evaluating the constructed code block.
+-   Logical errors in the comptime expression.
+-   A dependency could not be resolved at compile time.
 
 A common cause of this error might be trying to evaluate an expression that cannot resolve all its dependencies at compile time.
 

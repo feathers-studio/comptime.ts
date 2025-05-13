@@ -204,6 +204,7 @@ describe("comptime", () => {
 			export function sum(a: number, b: number) { return a + b; }
 		`,
 		);
+		// await getCompiled("foo.ts");
 		expect(getCompiled("foo.ts")).rejects.toThrow();
 	});
 

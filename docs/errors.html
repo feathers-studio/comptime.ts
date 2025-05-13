@@ -123,9 +123,9 @@ console.log(sum(1, 2, 3)); // Fixed syntax
 <p>This error implies that an evaluation context was created, but it failed to evaluate at compile time.</p>
 <p>It could due to:</p>
 <ul>
-<li>An error thrown by any called function</li>
-<li>Logical errors in the comptime expression</li>
-<li>A dependency that cannot be resolved at compile time</li>
+<li>An error was thrown while evaluating the constructed code block.</li>
+<li>Logical errors in the comptime expression.</li>
+<li>A dependency could not be resolved at compile time.</li>
 </ul>
 <p>A common cause of this error might be trying to evaluate an expression that cannot resolve all its dependencies at compile time.</p>
 <h3>Broken Code ❌</h3>
