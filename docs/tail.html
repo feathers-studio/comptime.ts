@@ -1,7 +1,11 @@
+</main>
 <script>
 	document.addEventListener("DOMContentLoaded", () => {
 		const counts = {};
 		document.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach(h => {
+			const hasAnchor = h.querySelector("a");
+			if (hasAnchor) return;
+
 			let id = h.textContent
 				.toLowerCase()
 				.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F]/gu, "")
@@ -29,6 +33,14 @@
 			h.innerHTML = "";
 			h.appendChild(a);
 		});
+	});
+
+	window.addEventListener("keydown", e => {
+		if (e.key === "Escape") {
+			const scrollY = window.scrollY;
+			window.location.hash = "";
+			window.scrollTo(0, scrollY);;
+		}
 	});
 </script>
 </body>

@@ -10,6 +10,7 @@
 * {
 	box-sizing: border-box;
 	max-width: 100%;
+	tab-size: 4;
 }
 
 *::selection {

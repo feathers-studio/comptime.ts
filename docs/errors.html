@@ -1,0 +1,223 @@
+<!DOCTYPE html><html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>List of comptime.ts errors</title>
+	<meta
+		name="description"
+		content="A simple-to-use compiler and Vite plugin to evaluate TypeScript expressions at build time." />
+	<meta name="author" content="Muthu Kumar" />
+	<meta name="keywords" content="TypeScript, comptime, compiler, Vite, plugin, build, time, expression, evaluate" />
+
+	<link rel="icon" href="/favicon.ico" />
+
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://comptime.js.org" />
+	<meta property="og:title" content="comptime.ts — compile-time expressions for TypeScript" />
+	<meta
+		property="og:description"
+		content="A simple-to-use compiler and Vite plugin to evaluate TypeScript expressions at build time." />
+	<meta property="og:image" content="https://comptime.js.org/comptime.ts.jpg" />
+
+	<!-- Twitter -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:url" content="https://comptime.js.org" />
+	<meta name="twitter:title" content="comptime.ts — compile-time expressions for TypeScript" />
+	<meta
+		name="twitter:description"
+		content="A simple-to-use compiler and Vite plugin to evaluate TypeScript expressions at build time." />
+	<meta name="twitter:image" content="https://comptime.js.org/comptime.ts.jpg" />
+
+	<meta name="darkreader-lock" />
+	<meta name="theme-color" content="#7759ff" />
+
+	<link rel="preconnect" href="https://rsms.me/" />
+	<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+	<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+	<main><h1>Errors</h1>
+<p>(<a href="../">back to home</a>)</p>
+<p>Errors happen while writing code. And it can be hard to diagnose comptime evaluations, since you don&#39;t see the constructed code block that&#39;s being executed for each expression. <code>comptime.ts</code> attempts to provide as much information as possible to help you debug and fix issues.</p>
+<p><img src="/error.jpg" alt="Compile Error"></p>
+<p>The following are known errors that can occur when using comptime.</p>
+<ul>
+<li><a href="#ct_err_get_evaluation"><code>CT_ERR_GET_EVALUATION</code></a></li>
+<li><a href="#ct_err_syntax_check"><code>CT_ERR_SYNTAX_CHECK</code></a></li>
+<li><a href="#ct_err_erase_types"><code>CT_ERR_ERASE_TYPES</code></a></li>
+<li><a href="#ct_err_create_function"><code>CT_ERR_CREATE_FUNCTION</code></a></li>
+<li><a href="#ct_err_evaluate"><code>CT_ERR_EVALUATE</code></a></li>
+<li><a href="#ct_err_no_comptime"><code>CT_ERR_NO_COMPTIME</code></a></li>
+</ul>
+<hr>
+<h2>CT_ERR_GET_EVALUATION</h2>
+<blockquote>
+<p>Error occurred while attempting to construct the comptime evaluation context.</p>
+</blockquote>
+<p>This error occurs when <code>comptime.ts</code> is traversing the source file to reconstruct an evaluation context from the expression that&#39;s being evaluated.</p>
+<h3>Explanation</h3>
+<p>Consider this source file:</p>
+<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
+import { value } from &quot;./value.ts&quot;;
+const x = 1;
+const y = sum(x, value);
+</code></pre>
+<p>Here the expression being evaluated is</p>
+<pre><code class="language-typescript">sum(x, value);
+</code></pre>
+<p><code>comptime.ts</code> will notice the identifiers and extract additional lines to add to the evaluation context.</p>
+<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
+import { value } from &quot;./value.ts&quot;;
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~2
+const x = 1;
+^~~~~~~~~~~1
+const y = sum(x, value);
+              ^1 ^~~~2
+</code></pre>
+<p>Extracted evaluation context:</p>
+<pre><code class="language-typescript">const { value } = await import(&quot;./value.ts&quot;);
+const x = 1;
+return sum(x, value);
+</code></pre>
+<p>If an error occurs during this process, this error will be thrown.</p>
+<h3>Solution</h3>
+<p>If the printed error message is not helpful, this might be an error in <code>comptime.ts</code>. <a href="https://github.com/feathers-studio/comptime.ts/issues/new/choose">Raise an issue</a> with the full error message and the code that&#39;s being evaluated.</p>
+<p>If the error persists, try to simplify the comptime expression.</p>
+<hr>
+<h2>CT_ERR_SYNTAX_CHECK</h2>
+<blockquote>
+<p>Syntax error in comptime evaluation context.</p>
+</blockquote>
+<p>This error occurs when there&#39;s a syntax error in the code that&#39;s being evaluated at compile time. The error message will include the specific syntax error and its location.</p>
+<h3>Broken Code ❌</h3>
+<pre><code class="language-typescript">import { sum } from &quot;./bar.ts&quot; with { type: &quot;comptime&quot; };
+console.log(sum(1 2 3)); // Missing comma
+</code></pre>
+<h3>Solution</h3>
+<p>Fix the syntax error in expressions that may be included in the evaluation context.</p>
+<h3>Fixed Code ✔️</h3>
+<pre><code class="language-typescript">import { sum } from &quot;./bar.ts&quot; with { type: &quot;comptime&quot; };
+console.log(sum(1, 2, 3)); // Fixed syntax
+</code></pre>
+<hr>
+<h2>CT_ERR_ERASE_TYPES</h2>
+<blockquote>
+<p>Error occurred while erasing types.</p>
+</blockquote>
+<p>This error occurs when comptime.ts fails to strip TypeScript type information from the evaluation context. <code>comptime.ts</code> does no type-checking, so this more likely has to do with syntactical errors.</p>
+<h3>Solution</h3>
+<p>Ensure the evaluation context is syntactically valid and does not contain invalid types.</p>
+<hr>
+<h2>CT_ERR_CREATE_FUNCTION</h2>
+<blockquote>
+<p>Error occurred while creating a new Function.</p>
+</blockquote>
+<p>This typically happens when the extracted evaluation context contains syntax invalid inside a function.</p>
+<h3>Solution</h3>
+<p>The type-stripped evaluation context should have been printed along with the error. Ensure the context is syntactically valid inside of an async function.</p>
+<hr>
+<h2>CT_ERR_EVALUATE</h2>
+<blockquote>
+<p>Error occurred while evaluating the expression.</p>
+</blockquote>
+<p>This error implies that an evaluation context was created, but it failed to evaluate at compile time.</p>
+<p>It could due to:</p>
+<ul>
+<li>An error thrown by any called function</li>
+<li>Logical errors in the comptime expression</li>
+<li>A dependency that cannot be resolved at compile time</li>
+</ul>
+<p>A common cause of this error might be trying to evaluate an expression that cannot resolve all its dependencies at compile time.</p>
+<h3>Broken Code ❌</h3>
+<pre><code class="language-typescript">import { foo } from &quot;./bar.ts&quot; with { type: &quot;comptime&quot; };
+
+((a) =&gt; {
+	console.log(foo(a));
+})(10);
+</code></pre>
+<p>Since <code>a</code> is not statically declared at compile time, it gets ignored, and the following construct is created:</p>
+<pre><code class="language-typescript">const { foo } = await import(&quot;./bar.ts&quot;);
+console.log(foo(a));
+                ^ ReferenceError: a is not defined
+</code></pre>
+<h3>Solution</h3>
+<p>Fix the underlying error, and ensure all dependencies are available at compile time.</p>
+<h3>Fixed Code ✔️</h3>
+<pre><code class="language-typescript">import { foo } from &quot;./bar.ts&quot; with { type: &quot;comptime&quot; };
+
+const a = 10;
+console.log(foo(a));
+</code></pre>
+<hr>
+<h2>CT_ERR_NO_COMPTIME</h2>
+<blockquote>
+<p><code>comptime()</code> must be called in a comptime context, but was called at runtime.</p>
+<p>Are you missing <code>with { type: &quot;comptime&quot; }</code> or a compile-step?</p>
+</blockquote>
+<p>This error occurs when the <code>comptime()</code> function is called outside of a comptime context.</p>
+<p>This means you either:</p>
+<ul>
+<li>Imported <code>comptime</code> without the <code>{ type: &quot;comptime&quot; }</code> attribute.</li>
+<li>Attempted to run the code without compiling.</li>
+</ul>
+<h3>Broken Code ❌</h3>
+<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts&quot;; // not imported with { type: &quot;comptime&quot; }
+const x = comptime(1 + 2);
+</code></pre>
+<h3>Solution</h3>
+<ol>
+<li>Ensure you&#39;re importing with the comptime type attribute.</li>
+<li>Ensure you&#39;re compiling the module using one of the <a href="/#usage">available methods</a>.</li>
+</ol>
+<h3>Fixed Code ✔️</h3>
+<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
+const x = comptime(1 + 2); // Now in comptime context
+</code></pre>
+
+</main>
+<script>
+	document.addEventListener("DOMContentLoaded", () => {
+		const counts = {};
+		document.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach(h => {
+			const hasAnchor = h.querySelector("a");
+			if (hasAnchor) return;
+
+			let id = h.textContent
+				.toLowerCase()
+				.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F]/gu, "")
+				.replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, "")
+				.replace(/\s+/g, "-")
+				.replace(/-+/g, "-")
+				.replace(/^[-]+|[-]+$/g, "");
+			const n = counts[id] || 0;
+			counts[id] = n + 1;
+			h.id = n ? `${id}-${n}` : id;
+
+			const a = document.createElement("a");
+			a.className = "header-link";
+			a.href = `#${h.id}`;
+
+			const linker = document.createElement("span");
+			linker.className = "linker";
+			linker.innerText = "🔗";
+			a.appendChild(linker);
+
+			const text = document.createElement("span");
+			text.innerText = h.textContent;
+			a.appendChild(text);
+
+			h.innerHTML = "";
+			h.appendChild(a);
+		});
+	});
+
+	window.addEventListener("keydown", e => {
+		if (e.key === "Escape") {
+			const scrollY = window.scrollY;
+			window.location.hash = "";
+			window.scrollTo(0, scrollY);;
+		}
+	});
+</script>
+</body>
+</html>

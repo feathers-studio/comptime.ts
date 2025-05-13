@@ -36,7 +36,7 @@
 	<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div align="center">
+	<main><div align="center">
   <img src="https://raw.githubusercontent.com/feathers-studio/comptime.ts/master/docs/comptime.ts.svg" alt="Hyperactive">
 </div>
 
@@ -59,6 +59,7 @@
 <blockquote>
 <p><strong>Warning</strong>: You are responsible for ensuring that the expressions you mark with <code>comptime</code> are safe to evaluate at compile time. <code>comptime.ts</code> does not perform any isolation. However, comptime imports are only allowed in project files, and not in node_modules. You may however import from node_modules as comptime.</p>
 </blockquote>
+<h3><a href="././errors">↗️ Quick Error Reference</a></h3>
 <h2>Contents</h2>
 <ul>
 <li><a href="#what-is-comptime.ts">What is comptime.ts?</a></li>
@@ -206,10 +207,14 @@ await comptimeCompiler({ tsconfigPath: &quot;tsconfig.json&quot; }, &quot;./out&
 <h2>License</h2>
 <p>MIT</p>
 
+</main>
 <script>
 	document.addEventListener("DOMContentLoaded", () => {
 		const counts = {};
 		document.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach(h => {
+			const hasAnchor = h.querySelector("a");
+			if (hasAnchor) return;
+
 			let id = h.textContent
 				.toLowerCase()
 				.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F]/gu, "")
@@ -238,5 +243,14 @@ await comptimeCompiler({ tsconfigPath: &quot;tsconfig.json&quot; }, &quot;./out&
 			h.appendChild(a);
 		});
 	});
+
+	window.addEventListener("keydown", e => {
+		if (e.key === "Escape") {
+			const scrollY = window.scrollY;
+			window.location.hash = "";
+			window.scrollTo(0, scrollY);;
+		}
+	});
 </script>
-</body></html>
+</body>
+</html>

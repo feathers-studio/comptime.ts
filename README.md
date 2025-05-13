@@ -22,6 +22,8 @@ This is useful for optimising your code by moving computations from runtime to c
 
 > **Warning**: You are responsible for ensuring that the expressions you mark with `comptime` are safe to evaluate at compile time. `comptime.ts` does not perform any isolation. However, comptime imports are only allowed in project files, and not in node_modules. You may however import from node_modules as comptime.
 
+### [↗️ Quick Error Reference](./ERRORS.md)
+
 ## Contents
 
 -   [What is comptime.ts?](#what-is-comptime.ts)
