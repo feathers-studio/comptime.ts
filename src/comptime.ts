@@ -297,6 +297,14 @@ function getTsConfig(opts?: GetComptimeReplacementsOpts): { configDir: string; t
 	}
 }
 
+export interface ComptimeContext {
+	sourceFile: string;
+	position: {
+		start: number;
+		end: number;
+	};
+}
+
 export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts): Promise<Replacements> {
 	const filter = createFilter(opts?.include, opts?.exclude);
 
@@ -429,7 +437,17 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 						evalProgram = await getEvaluation(checker, file, target);
 						assertNoSyntaxErrors(evalProgram);
 						transpiled = eraseTypes(evalProgram);
-						const func = new Function(`return async function evaluate() { ${transpiled} };`)();
+						const context: ComptimeContext = {
+							sourceFile: file.fileName,
+							position: {
+								start: target.getStart(file),
+								end: target.getEnd(),
+							},
+						};
+						const func = new Function(
+							"__comptime_context",
+							`return async function evaluate() { ${transpiled} };`,
+						)(context);
 						resolved = await func();
 					} catch (e) {
 						if (evalProgram || transpiled) {

@@ -1,6 +1,11 @@
-import { applyComptimeReplacements, getComptimeReplacements, type GetComptimeReplacementsOpts } from "./comptime.ts";
+import {
+	applyComptimeReplacements,
+	getComptimeReplacements,
+	type GetComptimeReplacementsOpts,
+	type ComptimeContext,
+} from "./comptime.ts";
 
-export type { ComptimeFunction, Replacements } from "./comptime.ts";
+export type { ComptimeFunction, Replacements, ComptimeContext } from "./comptime.ts";
 export { getComptimeReplacements, applyComptimeReplacements };
 
 export async function comptimeCompiler(opts?: GetComptimeReplacementsOpts, outdir?: string) {
@@ -8,9 +13,14 @@ export async function comptimeCompiler(opts?: GetComptimeReplacementsOpts, outdi
 	await applyComptimeReplacements({ ...opts, outdir }, replacements);
 }
 
+declare const __comptime_context: ComptimeContext | undefined;
+
 /**
  * A function that returns the expression it was given.
  * This is useful to force comptime evaluation of an expression.
+ *
+ * Note that if the provided expression resolves to a Promise-like value,
+ * it will be awaited and resolved to a value at comptime.
  *
  * ## Usage
  *
@@ -32,4 +42,8 @@ export async function comptimeCompiler(opts?: GetComptimeReplacementsOpts, outdi
  * const x = 3;
  * ```
  */
-export const comptime = <T>(expr: T) => expr;
+export const comptime = <T>(expr: T | PromiseLike<T>): T => {
+	if (typeof __comptime_context === "undefined") throw new Error("CT_ERR_NO_COMPTIME");
+
+	return expr as T;
+};
