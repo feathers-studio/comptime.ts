@@ -19,9 +19,9 @@ The following are known errors that can occur when using comptime.
 
 ## CT_ERR_GET_EVALUATION
 
-> Error occurred while attempting to construct the comptime evaluation context.
+> Error occurred while attempting to construct the comptime evaluation block.
 
-This error occurs when `comptime.ts` is traversing the source file to reconstruct an evaluation context from the expression that's being evaluated.
+This error occurs when `comptime.ts` is traversing the source file to reconstruct an evaluation block from the expression that's being evaluated.
 
 ### Explanation
 
@@ -40,7 +40,7 @@ Here the expression being evaluated is
 sum(x, value);
 ```
 
-`comptime.ts` will notice the identifiers and extract additional lines to add to the evaluation context.
+`comptime.ts` will notice the identifiers and extract additional lines to add to the evaluation block.
 
 ```typescript
 import { sum } from "./sum.ts" with { type: "comptime" };
@@ -52,7 +52,7 @@ const y = sum(x, value);
               ^1 ^~~~2
 ```
 
-Extracted evaluation context:
+Extracted evaluation block:
 
 ```typescript
 const { value } = await import("./value.ts");
@@ -72,7 +72,7 @@ If the error persists, try to simplify the comptime expression.
 
 ## CT_ERR_SYNTAX_CHECK
 
-> Syntax error in comptime evaluation context.
+> Syntax error in comptime evaluation block.
 
 This error occurs when there's a syntax error in the code that's being evaluated at compile time. The error message will include the specific syntax error and its location.
 
@@ -85,7 +85,7 @@ console.log(sum(1 2 3)); // Missing comma
 
 ### Solution
 
-Fix the syntax error in expressions that may be included in the evaluation context.
+Fix the syntax error in expressions that may be included in the evaluation block.
 
 ### Fixed Code ✔️
 
@@ -100,11 +100,11 @@ console.log(sum(1, 2, 3)); // Fixed syntax
 
 > Error occurred while erasing types.
 
-This error occurs when comptime.ts fails to strip TypeScript type information from the evaluation context. `comptime.ts` does no type-checking, so this more likely has to do with syntactical errors.
+This error occurs when comptime.ts fails to strip TypeScript type information from the evaluation block. `comptime.ts` does no type-checking, so this more likely has to do with syntactical errors.
 
 ### Solution
 
-Ensure the evaluation context is syntactically valid and does not contain invalid types.
+Ensure the evaluation block is syntactically valid and does not contain invalid types.
 
 ---
 
@@ -112,11 +112,11 @@ Ensure the evaluation context is syntactically valid and does not contain invali
 
 > Error occurred while creating a new Function.
 
-This typically happens when the extracted evaluation context contains syntax invalid inside a function.
+This typically happens when the extracted evaluation block contains syntax invalid inside a function.
 
 ### Solution
 
-The type-stripped evaluation context should have been printed along with the error. Ensure the context is syntactically valid inside of an async function.
+The type-stripped evaluation block should have been printed along with the error. Ensure the context is syntactically valid inside of an async function.
 
 ---
 
@@ -124,7 +124,7 @@ The type-stripped evaluation context should have been printed along with the err
 
 > Error occurred while evaluating the expression.
 
-This error implies that an evaluation context was created, but it failed to evaluate at compile time.
+This error implies that an evaluation block was created, but it failed to evaluate at compile time.
 
 It could due to:
 

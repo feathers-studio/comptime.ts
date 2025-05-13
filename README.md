@@ -160,7 +160,7 @@ const x = 3;
 ## Limitations
 
 -   Only JSON-serialisable values can be returned from comptime expressions
--   The evaluation context is isolated, so certain runtime features might not be available
+-   The evaluation block is isolated, so certain runtime features might not be available
 -   Complex expressions might increase build time significantly
 -   Type information is not available during evaluation
 
@@ -177,6 +177,16 @@ const x = 3;
 
 ## Troubleshooting
 
+`comptime.ts` will attempt to print very detailed error messages when it runs into an error. The message by itself should provide enough information to resolve the issue. See the [error reference](./ERRORS.md) for more details.
+
+If the error message is not helpful, [raise an issue](https://github.com/feathers-studio/comptime.ts/issues/new/choose) with the full error message and the code that's being evaluated.
+
+However, sometimes `comptime.ts` runs successfully, but the output is not what you expected. This section describes some common issues and how to resolve them.
+
+> **Note**: To force `comptime.ts` to print the constructed evaluation block for each expression and other debug logs, set the environment variable `DEBUG=comptime:*`.
+
+The following are some non-error issues that you might encounter:
+
 1. **Redundant code not removed**
 
     - `comptime.ts` removes imports marked with `type: "comptime"` and replaces comptime expressions.
@@ -184,17 +194,65 @@ const x = 3;
     - Use other tooling (like Vite) to handle such cleanup after the fact.
     - `comptime.ts` is available as a standalone CLI, JavaScript API and Vite plugin. If you'd like `comptime.ts` to integrate with other tooling, please let us know via an issue or raise a PR!
 
+1. **Compilation result is unexpected**
+
+    - Notice that variables in the caller's scope that are not comptime (imported with the "comptime" attribute) are not guaranteed to be stable.
+    - `comptime.ts` will extract their declarations, but it will not account for mutations.
+    - If multiple comptime expressions exist in the same file, all dependent statements will be extracted and evaluated for _each_ expression. This may cause the same declarations to be evaluated multiple times, and mutations are not reflected between evaluations.
+    - If you want a mutable comptime variable, declare it in another file and import it with the "comptime" attribute.
+
+    ```typescript
+    import { sum } from "./sum.ts" with { type: "comptime" };
+
+    let a = 1;
+
+    const x = sum(++a, 2);
+    ++a;
+    const y = sum(++a, 2);
+    ```
+
+    Gets compiled to:
+
+    ```typescript
+    let a = 1; // not a comptime var
+
+    const x = 4;
+    ++a; // untouched
+    const y = 4; // same as previous line because it was evaluated independently
+    ```
+
+    However, if we move the mutable state to another file, mutations are reflected between evaluations.
+
+    ```typescript
+    import { sum } from "./sum.ts" with { type: "comptime" };
+
+    // export const state = { a: 1 };
+    import { state } from "./state.ts" with { type: "comptime" };
+
+    const x = sum(++state.a, 2);
+    ++state.a;
+    const y = sum(state.a, 2);
+    ```
+
+    Gets compiled to:
+
+    ```typescript
+    const x = 4;
+    3; // because of the ++a in previous line
+    const y = 5;
+    ```
+
 1. **My comptime expression was not replaced**
 
-    - Check that the import has `{ type: "comptime" }`
-    - Ensure the expression is JSON-serialisable
-    - Verify all dependencies are available at compile time
+    - Check that the import has `{ type: "comptime" }`.
+    - Ensure the expression is JSON-serialisable.
+    - Verify all dependencies are available at compile time.
 
 1. **Build time too slow**
 
-    - Consider moving complex computations to runtime
-    - Break down large expressions into smaller ones
-    - Use the `include`/`exclude` options to limit scope
+    - Consider moving complex computations to runtime.
+    - Break down large expressions into smaller ones.
+    - Pass `include`/`exclude` options to limit scope.
 
 ## License
 
