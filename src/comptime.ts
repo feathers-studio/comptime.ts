@@ -3,6 +3,8 @@ import path from "node:path";
 import MagicString from "magic-string";
 import * as ts from "typescript";
 import { type FilterPattern, createFilter } from "vite";
+import { formatSourceError } from "./formatSourceError.ts";
+import { COMPTIME_ERRORS, type ComptimeError, getErr } from "./errors.ts";
 
 export interface ComptimeFunction {
 	name: string;
@@ -35,10 +37,7 @@ export function assertNoSyntaxErrors(tsCode: string) {
 	const diagnostics = program.getSyntacticDiagnostics();
 
 	if (diagnostics.length > 0) {
-		throw new Error(
-			"Syntax error in comptime eval block:\n" +
-				diagnostics.map(d => ts.flattenDiagnosticMessageText(d.messageText, "\n")).join("\n"),
-		);
+		throw new Error(ts.flattenDiagnosticMessageText(diagnostics[0]!.messageText, "\n"));
 	}
 }
 
@@ -70,12 +69,12 @@ export function query<R extends ts.Node>(root: ts.Node, query: ts.SyntaxKind, fi
 	return results;
 }
 
-function getEnclosingImportDeclaration(node: ts.Node): ts.ImportDeclaration {
+export function getEnclosingImportDeclaration(node: ts.Node): ts.ImportDeclaration {
 	while (node && !ts.isImportDeclaration(node)) node = node.parent!;
 	return node;
 }
 
-function getEnclosingStatement(node: ts.Node): ts.Statement {
+export function getEnclosingStatement(node: ts.Node): ts.Statement {
 	while (node && !ts.isStatement(node)) node = node.parent!;
 	return node as ts.Statement;
 }
@@ -430,12 +429,16 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 				}));
 
 				const replacements = filteredTargets.map(async ({ node: target }) => {
+					let errCode: ComptimeError = COMPTIME_ERRORS.CT_ERR_GET_EVALUATION;
+
 					let evalProgram: string = "";
 					let transpiled: string = "";
 					let resolved: unknown;
 					try {
 						evalProgram = await getEvaluation(checker, file, target);
+						errCode = COMPTIME_ERRORS.CT_ERR_SYNTAX_CHECK;
 						assertNoSyntaxErrors(evalProgram);
+						errCode = COMPTIME_ERRORS.CT_ERR_ERASE_TYPES;
 						transpiled = eraseTypes(evalProgram);
 						const context: ComptimeContext = {
 							sourceFile: file.fileName,
@@ -444,25 +447,16 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 								end: target.getEnd(),
 							},
 						};
+						errCode = COMPTIME_ERRORS.CT_ERR_CREATE_FUNCTION;
 						const func = new Function(
 							"__comptime_context",
 							`return async function evaluate() { ${transpiled} };`,
 						)(context);
+						errCode = COMPTIME_ERRORS.CT_ERR_EVALUATE;
 						resolved = await func();
 					} catch (e) {
-						if (evalProgram || transpiled) {
-							console.error("An error occurred while evaluating the following code:");
-							console.error("---");
-							console.error(transpiled || evalProgram);
-							console.error("---\n");
-						}
-
-						const marker = `${resolved}:${target.getStart(file)}:${target.getEnd()}`;
-
-						if (e && typeof e === "object" && "message" in e)
-							console.error(e.message, "at", "stack" in e ? e.stack : "unknown");
-						console.error("---");
-						throw new Error(`Error evaluating ${target.getText()} at ${marker}: ${e}`, { cause: e });
+						const message = formatSourceError(file, target, e, evalProgram, transpiled);
+						throw new Error(getErr(errCode, message), { cause: e });
 					}
 					const result = JSON.stringify(resolved) ?? "undefined";
 					return { start: target.getStart(file), end: target.getEnd(), replacement: result };

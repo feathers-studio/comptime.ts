@@ -4,6 +4,7 @@ import {
 	type GetComptimeReplacementsOpts,
 	type ComptimeContext,
 } from "./comptime.ts";
+import { COMPTIME_ERRORS, getErr } from "./errors.ts";
 
 export type { ComptimeFunction, Replacements, ComptimeContext } from "./comptime.ts";
 export { getComptimeReplacements, applyComptimeReplacements };
@@ -43,7 +44,7 @@ declare const __comptime_context: ComptimeContext | undefined;
  * ```
  */
 export const comptime = <T>(expr: T | PromiseLike<T>): T => {
-	if (typeof __comptime_context === "undefined") throw new Error("CT_ERR_NO_COMPTIME");
+	if (typeof __comptime_context === "undefined") throw new Error(getErr(COMPTIME_ERRORS.CT_ERR_NO_COMPTIME));
 
 	return expr as T;
 };

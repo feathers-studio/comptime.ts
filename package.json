@@ -40,6 +40,7 @@
 		"vite-plugin"
 	],
 	"dependencies": {
+		"boxen": "^8.0.1",
 		"magic-string": "^0.30.17",
 		"typescript": "^5"
 	},
