@@ -75,7 +75,7 @@ export function formatSourceError(
 	const stripped = transpiled ? " (types stripped)" : evalProgram ? "" : "never";
 
 	if (source) {
-		message.push(["Then we constructed this evaluation context" + stripped + ":", box(source)].join("\n"));
+		message.push(["Then we constructed this evaluation block" + stripped + ":", box(source)].join("\n"));
 	}
 
 	if (error && typeof error === "object") {

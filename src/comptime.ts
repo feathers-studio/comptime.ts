@@ -6,7 +6,8 @@ import MagicString from "magic-string";
 import * as ts from "typescript";
 import { type FilterPattern, createFilter } from "vite";
 import { formatSourceError } from "./formatSourceError.ts";
-import { COMPTIME_ERRORS, type ComptimeError, getErr } from "./errors.ts";
+import { box, COMPTIME_ERRORS, type ComptimeError, getErr } from "./errors.ts";
+import { format } from "node:util";
 
 export interface ComptimeFunction {
 	name: string;
@@ -307,7 +308,7 @@ export interface ComptimeContext {
 }
 
 const logs = {
-	evalContext: w("comptime:eval-context"),
+	evalContext: w("comptime:eval"),
 };
 
 export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts): Promise<Replacements> {
@@ -478,7 +479,24 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 
 					let resolved: unknown;
 					try {
-						logs.evalContext("\n\n" + transpiled + "\n\n-- comptime context:", context, "\n");
+						if (logs.evalContext.enabled) {
+							const lineChar = ts.getLineAndCharacterOfPosition(file, target.getStart(file));
+							const marker = `${file.fileName}:${lineChar.line + 1}:${lineChar.character + 1}`;
+							logs.evalContext(
+								"\n\n" +
+									box(
+										[
+											box(transpiled),
+											"-- with comptime context: " + format(context),
+											"From: " + marker,
+										].join("\n\n"),
+										{
+											title: "evaluation block",
+										},
+									),
+								"\n",
+							);
+						}
 						const func = new Function(
 							"__comptime_context",
 							`return async function evaluate() { ${transpiled} };`,
