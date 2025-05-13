@@ -41,7 +41,8 @@ export function formatSourceError(
 	transpiled?: string,
 ) {
 	const fileName = sourceFile.fileName;
-	const marker = `${fileName}:${target.getStart(sourceFile)}:${target.getEnd()}`;
+	const lineChar = ts.getLineAndCharacterOfPosition(sourceFile, target.getStart(sourceFile));
+	const marker = `${fileName}:${lineChar.line + 1}:${lineChar.character + 1}`;
 
 	const stmt = getEnclosingStatement(target);
 
