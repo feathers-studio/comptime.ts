@@ -8,6 +8,7 @@ import { type FilterPattern, createFilter } from "vite";
 import { formatSourceError } from "./formatSourceError.ts";
 import { box, COMPTIME_ERRORS, type ComptimeError, getErr } from "./errors.ts";
 import { format } from "node:util";
+import { getModuleResolver, type ModuleResolver } from "./resolve.ts";
 
 export interface ComptimeFunction {
 	name: string;
@@ -23,13 +24,8 @@ export interface Replacement {
 
 export type Replacements = Record<string, Replacement[]>;
 
-export function assertNoSyntaxErrors(tsCode: string) {
+export function assertNoSyntaxErrors(compilerOptions: ts.CompilerOptions, tsCode: string) {
 	const fileName = "eval.ts";
-	const compilerOptions: ts.CompilerOptions = {
-		module: ts.ModuleKind.ESNext,
-		target: ts.ScriptTarget.ESNext,
-		allowJs: true,
-	};
 	const host = ts.createCompilerHost(compilerOptions);
 	host.getSourceFile = (fileName_, languageVersion) =>
 		fileName_ === fileName
@@ -44,13 +40,11 @@ export function assertNoSyntaxErrors(tsCode: string) {
 	}
 }
 
-export function eraseTypes(tsCode: string): string {
+export function eraseTypes(compilerOptions: ts.CompilerOptions, tsCode: string): string {
 	return ts
 		.transpileModule(tsCode, {
 			compilerOptions: {
-				module: ts.ModuleKind.ESNext,
-				target: ts.ScriptTarget.ESNext,
-				allowJs: true,
+				...compilerOptions,
 				noEmitOnError: true,
 			},
 		})
@@ -157,31 +151,16 @@ function recursivelyGetIdentifierDeclarations(
 		});
 }
 
-const getImportLine = async (imp: ts.ImportSpecifier | ts.ImportClause | ts.NamespaceImport) => {
+const getImportLine = async (
+	resolver: ModuleResolver,
+	imp: ts.ImportSpecifier | ts.ImportClause | ts.NamespaceImport,
+) => {
 	const decl = getEnclosingImportDeclaration(imp);
 	const specifier = decl.moduleSpecifier.getText().slice(1, -1);
 
-	let importPath: string;
-
 	const importer = decl.getSourceFile().fileName;
-	const importDir = path.dirname(importer);
-
-	if (specifier.startsWith("./") || specifier.startsWith("../")) {
-		importPath = path.resolve(importDir, specifier);
-	} else {
-		const resolved = ts.nodeModuleNameResolver(
-			specifier,
-			importer,
-			{
-				module: ts.ModuleKind.ESNext,
-				target: ts.ScriptTarget.ESNext,
-				allowJs: true,
-			},
-			ts.sys,
-		);
-		if (!resolved.resolvedModule) throw new Error("Could not resolve module: " + specifier);
-		importPath = resolved.resolvedModule.resolvedFileName;
-	}
+	const importPath = resolver(specifier, importer);
+	if (!importPath) throw new Error("Could not resolve module: " + specifier + " from " + importer);
 
 	if (ts.isImportSpecifier(imp)) {
 		// Named import: import { foo } from ... or import { foo as bar } from ...
@@ -222,7 +201,12 @@ function stripExportModifier(node: ts.Statement): string {
 	return text.slice(0, start) + text.slice(end).trim();
 }
 
-async function getEvaluation(checker: ts.TypeChecker, sourceFile: ts.SourceFile, node: ts.Node) {
+async function getEvaluation(
+	resolver: ModuleResolver,
+	checker: ts.TypeChecker,
+	sourceFile: ts.SourceFile,
+	node: ts.Node,
+) {
 	const expression = node.getText();
 	const identifiers = query<ts.Identifier>(node, ts.SyntaxKind.Identifier);
 	const seen = new Set<DeclarationNode>();
@@ -235,7 +219,7 @@ async function getEvaluation(checker: ts.TypeChecker, sourceFile: ts.SourceFile,
 	});
 
 	const declLines = await Promise.all(
-		sorted.map(each => (isImportNode(each) ? getImportLine(each) : stripExportModifier(each))),
+		sorted.map(each => (isImportNode(each) ? getImportLine(resolver, each) : stripExportModifier(each))),
 	);
 
 	return declLines.join("\n") + "\n" + `return ${expression};`;
@@ -248,6 +232,7 @@ function isNodeModules(filePath: string): boolean {
 interface BaseConfig {
 	include?: FilterPattern;
 	exclude?: FilterPattern;
+	resolver?: ModuleResolver;
 }
 
 interface ConfigByConfig extends BaseConfig {
@@ -441,6 +426,8 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 
 				const replacements = [];
 
+				const resolver = getModuleResolver(opts?.resolver);
+
 				// safe to do all this work async
 				const evaluations = await Promise.all(
 					filteredTargets.map(async ({ node: target }) => {
@@ -450,11 +437,11 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 						let transpiled: string = "";
 
 						try {
-							evalProgram = await getEvaluation(checker, file, target);
+							evalProgram = await getEvaluation(resolver, checker, file, target);
 							errCode = COMPTIME_ERRORS.CT_ERR_SYNTAX_CHECK;
-							assertNoSyntaxErrors(evalProgram);
+							assertNoSyntaxErrors(options.options, evalProgram);
 							errCode = COMPTIME_ERRORS.CT_ERR_ERASE_TYPES;
-							transpiled = eraseTypes(evalProgram);
+							transpiled = eraseTypes(options.options, evalProgram);
 						} catch (e) {
 							const message = formatSourceError(file, target, e, evalProgram, transpiled);
 							throw new Error(getErr(errCode, message), { cause: e });

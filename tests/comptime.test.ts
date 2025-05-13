@@ -70,7 +70,7 @@ describe("comptime", () => {
 				console.log(3);
 			`;
 
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should handle multiple comptime imports from different files", async () => {
@@ -101,7 +101,7 @@ describe("comptime", () => {
 			
 			console.log(3 + 6);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should work with nested directories", async () => {
@@ -125,7 +125,7 @@ describe("comptime", () => {
 			
 			console.log(2);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should leave files unchanged if there are no comptime imports", async () => {
@@ -140,7 +140,7 @@ describe("comptime", () => {
 		const expected = `
 			console.log('no comptime here');
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should replace simple identifiers", async () => {
@@ -163,7 +163,7 @@ describe("comptime", () => {
 			
 			console.log(2);
 			`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should ignore type-only imports for comptime", async () => {
@@ -187,7 +187,7 @@ describe("comptime", () => {
 			import type { Foo } from "./types.ts";
 			const x: Foo = { a: 1 };
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should handle syntax errors gracefully", async () => {
@@ -205,7 +205,7 @@ describe("comptime", () => {
 		`,
 		);
 		// await getCompiled("foo.ts");
-		expect(getCompiled("foo.ts")).rejects.toThrow();
+		return expect(getCompiled("foo.ts")).rejects.toThrow();
 	});
 
 	it("should ignore non-TS files in the directory", async () => {
@@ -221,7 +221,7 @@ describe("comptime", () => {
 		const expected = `
 			console.log('hello');
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should handle complex comptime expressions", async () => {
@@ -250,7 +250,7 @@ describe("comptime", () => {
 			
 			console.log(1 + 2 + 12);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should stop at parenthesised boundaries", async () => {
@@ -278,7 +278,7 @@ describe("comptime", () => {
 			
 			console.log((1).toString());
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should replace void identifiers with undefined", async () => {
@@ -301,7 +301,7 @@ describe("comptime", () => {
 			
 			console.log(undefined);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should replace void expressions with undefined", async () => {
@@ -326,7 +326,7 @@ describe("comptime", () => {
 			
 			undefined;
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should replace unsubstituted tagged template literals with resolved values", async () => {
@@ -349,7 +349,7 @@ describe("comptime", () => {
 			
 			console.log("hello");
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should replace substituted tagged template literals with resolved values", async () => {
@@ -372,7 +372,7 @@ describe("comptime", () => {
 			
 			console.log("hello 5!");
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should force comptime evaluation of an expression", async () => {
@@ -392,7 +392,7 @@ describe("comptime", () => {
 			const x = 3;
 			console.log(x);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should force comptime evaluation of a complex expression", async () => {
@@ -424,7 +424,7 @@ describe("comptime", () => {
 			
 			console.log(15);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should evaluate asynchronous expressions", async () => {
@@ -446,7 +446,7 @@ describe("comptime", () => {
 			const x = 3;
 			console.log(x);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should handle different import types", async () => {
@@ -476,7 +476,7 @@ describe("comptime", () => {
 			
 			console.log(1, 1, 2, 1);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should work even if some statements are export declarations", async () => {
@@ -496,7 +496,7 @@ describe("comptime", () => {
 			export const y = 2;
 			console.log(4);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should import comptime from node_modules", async () => {
@@ -518,7 +518,7 @@ describe("comptime", () => {
 			
 			console.log(2);
 		`;
-		expect(result).toEqual(expected);
+		return expect(result).toEqual(expected);
 	});
 
 	it("should not allow comptime imports from node_modules", async () => {
@@ -546,7 +546,7 @@ describe("comptime", () => {
 		);
 		await file("node_modules/baz/index.js", `export const x = 2;`);
 
-		expect(getCompiled("node_modules/bar/index.js")).rejects.toThrow();
+		return expect(getCompiled("node_modules/bar/index.js")).rejects.toThrow();
 	});
 
 	it("should refuse to evaluate comptime() outside of a comptime context", async () => {
@@ -554,6 +554,39 @@ describe("comptime", () => {
 		const filename = await file("foo.ts", `import { comptime } from "${parent}"; const x = comptime(1 + 2);`);
 		// const res = await import(filename);
 		// import the file, causing the comptime() call to be performed at runtime outside of a comptime context
-		expect(import(filename)).rejects.toThrow();
+		return expect(import(filename)).rejects.toThrow();
+	});
+
+	it("should import javascript file from node_modules instead of d.ts", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { x } from "bar" with { type: "comptime" };
+			console.log(x);
+		`,
+		);
+		await file(
+			"node_modules/bar/package.json",
+			`{"name": "bar", "version": "1.0.0", "main": "index.js", "types": "index.d.ts"}`,
+		);
+		await file(
+			"node_modules/bar/index.js",
+			`
+			module.exports = { x: 2 };
+		`,
+		);
+		await file(
+			"node_modules/bar/index.d.ts",
+			`
+			export const x: number;
+		`,
+		);
+
+		const result = await getCompiled("foo.ts");
+		const expected = `
+			
+			console.log(2);
+		`;
+		return expect(result).toEqual(expected);
 	});
 });

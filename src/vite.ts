@@ -10,7 +10,9 @@ export async function comptime(opts?: GetComptimeReplacementsOpts): Promise<Plug
 	return {
 		name: "vite-plugin-comptime",
 		async buildStart() {
-			replacements = await getComptimeReplacements(opts);
+			const resolver = (specifier: string, importer: string) =>
+				this.resolve(specifier, importer).then(res => res?.id);
+			replacements = await getComptimeReplacements({ ...opts, resolver });
 		},
 		async load(id) {
 			const replacement = replacements[id];
