@@ -1,3 +1,5 @@
+import { w } from "w";
+
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import MagicString from "magic-string";
@@ -304,6 +306,10 @@ export interface ComptimeContext {
 	};
 }
 
+const logs = {
+	evalContext: w("comptime:eval-context"),
+};
+
 export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts): Promise<Replacements> {
 	const filter = createFilter(opts?.include, opts?.exclude);
 
@@ -447,7 +453,7 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 								end: target.getEnd(),
 							},
 						};
-						errCode = COMPTIME_ERRORS.CT_ERR_CREATE_FUNCTION;
+						logs.evalContext("\n\n" + transpiled + "\n\n-- comptime context:", context, "\n");
 						const func = new Function(
 							"__comptime_context",
 							`return async function evaluate() { ${transpiled} };`,
