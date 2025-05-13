@@ -104,6 +104,20 @@ export default defineConfig({
 
 > **Note**: We recommend only enabling this in production builds because it will increase build time.
 
+### With Bun bundler
+
+Add the plugin to your Bun bundler configuration:
+
+```typescript
+import { comptime } from "comptime.ts/bun";
+
+await Bun.build({
+	entrypoints: ["./index.ts"],
+	outdir: "./out",
+	plugins: [comptime()],
+});
+```
+
 ### Command Line Interface
 
 You can also use the CLI:

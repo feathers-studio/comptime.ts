@@ -131,6 +131,16 @@ export default defineConfig({
 <blockquote>
 <p><strong>Note</strong>: We recommend only enabling this in production builds because it will increase build time.</p>
 </blockquote>
+<h3>With Bun bundler</h3>
+<p>Add the plugin to your Bun bundler configuration:</p>
+<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts/bun&quot;;
+
+await Bun.build({
+	entrypoints: [&quot;./index.ts&quot;],
+	outdir: &quot;./out&quot;,
+	plugins: [comptime()],
+});
+</code></pre>
 <h3>Command Line Interface</h3>
 <p>You can also use the CLI:</p>
 <pre><code class="language-bash">npx comptime.ts --project tsconfig.json --outdir out
