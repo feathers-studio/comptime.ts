@@ -24,15 +24,26 @@ export interface Replacement {
 
 export type Replacements = Record<string, Replacement[]>;
 
-export function assertNoSyntaxErrors(compilerOptions: ts.CompilerOptions, tsCode: string) {
+// Using a custom tsconfig for eval block to avoid extra transformations
+const evalBlockTsConfig = {
+	compilerOptions: {
+		module: ts.ModuleKind.ESNext,
+		moduleResolution: ts.ModuleResolutionKind.NodeNext,
+		target: ts.ScriptTarget.ESNext,
+		verbatimModuleSyntax: true,
+		noEmitOnError: true,
+	},
+};
+
+export function assertNoSyntaxErrors(tsCode: string) {
 	const fileName = "eval.ts";
-	const host = ts.createCompilerHost(compilerOptions);
+	const host = ts.createCompilerHost(evalBlockTsConfig.compilerOptions);
 	host.getSourceFile = (fileName_, languageVersion) =>
 		fileName_ === fileName
 			? ts.createSourceFile(fileName, tsCode, languageVersion, true, ts.ScriptKind.TS)
 			: undefined;
 
-	const program = ts.createProgram([fileName], compilerOptions, host);
+	const program = ts.createProgram([fileName], evalBlockTsConfig.compilerOptions, host);
 	const diagnostics = program.getSyntacticDiagnostics();
 
 	if (diagnostics.length > 0) {
@@ -40,15 +51,8 @@ export function assertNoSyntaxErrors(compilerOptions: ts.CompilerOptions, tsCode
 	}
 }
 
-export function eraseTypes(compilerOptions: ts.CompilerOptions, tsCode: string): string {
-	return ts
-		.transpileModule(tsCode, {
-			compilerOptions: {
-				...compilerOptions,
-				noEmitOnError: true,
-			},
-		})
-		.outputText.trim();
+export function eraseTypes(tsCode: string): string {
+	return ts.transpileModule(tsCode, evalBlockTsConfig).outputText.trim();
 }
 
 export function query<R extends ts.Node>(root: ts.Node, query: ts.SyntaxKind, filter?: (node: R) => boolean): R[] {
@@ -441,9 +445,9 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 						try {
 							evalProgram = await getEvaluation(resolver, checker, file, target);
 							errCode = COMPTIME_ERRORS.CT_ERR_SYNTAX_CHECK;
-							assertNoSyntaxErrors(options.options, evalProgram);
+							assertNoSyntaxErrors(evalProgram);
 							errCode = COMPTIME_ERRORS.CT_ERR_ERASE_TYPES;
-							transpiled = eraseTypes(options.options, evalProgram);
+							transpiled = eraseTypes(evalProgram);
 						} catch (e) {
 							const message = formatSourceError(file, target, e, evalProgram, transpiled);
 							throw new Error(getErr(errCode, message), { cause: e });
