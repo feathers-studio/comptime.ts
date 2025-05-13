@@ -162,7 +162,7 @@ const getImportLine = async (
 	const specifier = decl.moduleSpecifier.getText().slice(1, -1);
 
 	const importer = decl.getSourceFile().fileName;
-	const importPath = resolver(specifier, importer);
+	const importPath = await resolver(specifier, importer);
 	if (!importPath) throw new Error("Could not resolve module: " + specifier + " from " + importer);
 
 	if (ts.isImportSpecifier(imp)) {
