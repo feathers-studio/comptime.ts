@@ -14,7 +14,7 @@ export async function comptimeCompiler(opts?: GetComptimeReplacementsOpts, outdi
 	await applyComptimeReplacements({ ...opts, outdir }, replacements);
 }
 
-declare const __comptime_context: ComptimeContext | undefined;
+declare const __comptime_symbol: symbol | undefined;
 
 /**
  * A function that returns the expression it was given.
@@ -44,7 +44,7 @@ declare const __comptime_context: ComptimeContext | undefined;
  * ```
  */
 export const comptime = <T>(expr: T | PromiseLike<T>): T => {
-	if (typeof __comptime_context === "undefined") throw new Error(getErr(COMPTIME_ERRORS.CT_ERR_NO_COMPTIME));
+	if (typeof __comptime_symbol === "undefined") throw new Error(getErr(COMPTIME_ERRORS.CT_ERR_NO_COMPTIME));
 
 	return expr as T;
 };

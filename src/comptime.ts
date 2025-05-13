@@ -490,7 +490,8 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 						}
 						const func = new Function(
 							"__comptime_context",
-							`return async function evaluate() { ${transpiled} };`,
+							`globalThis.__comptime_symbol = Symbol.for("comptime.ts");` +
+								`return async function evaluate() { ${transpiled} };`,
 						)(context);
 						errCode = COMPTIME_ERRORS.CT_ERR_EVALUATE;
 						resolved = await func();
