@@ -61,7 +61,7 @@ export function formatSourceError(
 			sourceMarker = "~".repeat(length);
 		}
 
-		text = source + "\n" + " ".repeat(start.column) + sourceMarker + " <- Error occurred with this expression";
+		text = source + "\n" + " ".repeat(start.column) + sourceMarker + " <- Evaluation started here";
 	}
 
 	const message = [];
