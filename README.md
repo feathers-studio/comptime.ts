@@ -26,10 +26,15 @@ This is useful for optimising your code by moving computations from runtime to c
 
 ## Contents
 
--   [What is comptime.ts?](#what-is-comptime.ts)
+-   [What is comptime.ts?](#what-is-comptimets)
+-   [Examples](#examples)
+    -   [1. Simple sum function](#1-simple-sum-function)
+    -   [2. Turn emotion CSS into a zero-runtime CSS library](#2-turn-emotion-css-into-a-zero-runtime-css-library)
+    -   [3. Calculate constants at compile time](#3-calculate-constants-at-compile-time)
 -   [Installation](#installation)
 -   [Usage](#usage)
     -   [With Vite](#with-vite)
+    -   [With Bun bundler](#with-bun-bundler)
     -   [Command Line Interface](#command-line-interface)
     -   [Via API](#via-api)
 -   [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises)
@@ -46,24 +51,56 @@ This is useful for optimising your code by moving computations from runtime to c
 
 comptime.ts allows you to evaluate expressions at compile time, similar to compile-time macros in other languages. This can help optimise your code by moving computations from runtime to compile time.
 
-### Example
+## Examples
+
+### 1. Simple sum function
 
 ```typescript
 import { sum } from "./sum.ts" with { type: "comptime" };
-import { css } from "@emotion/css" with { type: "comptime" };
 
 console.log(sum(1, 2));
-console.log(css`
-  color: red;
-  font-size: 16px;
-`);
 ```
 
 Compiles to:
 
 ```typescript
 console.log(3);
-console.log("css-x2wxma");
+```
+
+### 2. Turn emotion CSS into a zero-runtime CSS library
+
+```typescript
+import { css } from "@emotion/css" with { type: "comptime" };
+
+const style = css`
+  color: red;
+  font-size: 16px;
+`;
+
+div({ class: style });
+```
+
+Compiles to:
+
+```typescript
+const style = "css-x2wxma";
+div({ class: style });
+```
+
+> **Note**: The `@emotion/css` import got removed from the output. You'll need to somehow add the styles back to your project, for example by side-effect loading the component files that originally called <code>css``</code> and extracting the styles with`getRegisteredStyles()`from`@emotion/css`.
+
+### 3. Calculate constants at compile time
+
+```typescript
+import { ms } from "ms" with { type: "comptime" };
+
+const HOUR = ms("1 hour");
+```
+
+Compiles to:
+
+```typescript
+const HOUR = 3600000;
 ```
 
 Apart from function calls and tagged template literals, all sorts of expressions are supported (even complex ones like index access and simple ones like imported constants). The only limitation is that the resultant value must be serialisable to JSON.
