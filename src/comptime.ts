@@ -380,7 +380,9 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 							// Choose foo++ instead of foo
 							(ts.isPostfixUnaryExpression(parent) && parent.operand === current) ||
 							// Choose ++foo instead of foo
-							(ts.isPrefixUnaryExpression(parent) && parent.operand === current)
+							(ts.isPrefixUnaryExpression(parent) && parent.operand === current) ||
+							// Choose new Class() instead of Class
+							(ts.isNewExpression(parent) && parent.expression === current)
 
 							/*
 								We deliberately chose not to include ParenthesizedExpression.
