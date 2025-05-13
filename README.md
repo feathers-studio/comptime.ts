@@ -38,6 +38,7 @@ This is useful for optimising your code by moving computations from runtime to c
 -   [Limitations](#limitations)
 -   [Best practices](#best-practices)
 -   [Troubleshooting](#troubleshooting)
+-   [Supporting the project](#supporting-the-project)
 -   [License](#license)
 
 ## What is comptime.ts?
@@ -270,6 +271,15 @@ The following are some non-error issues that you might encounter:
     - Consider moving complex computations to runtime.
     - Break down large expressions into smaller ones.
     - Pass `include`/`exclude` options to limit scope.
+
+## Supporting the project
+
+A lot of time and effort goes into maintaining projects like this.
+
+If you'd like to support the project, please consider:
+
+-   [Star and share the project with others](https://github.com/feathers-studio/comptime.ts)
+-   Sponsor the project ([GitHub Sponsors](https://github.com/sponsors/MKRhere) / [Patreon](https://patreon.com/MKRhere) / [Ko-fi](https://ko-fi.com/MKRhere))
 
 ## License
 

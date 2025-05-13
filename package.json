@@ -23,7 +23,20 @@
 		"name": "Muthu Kumar <@MKRhere> (muthukumar@thefeathers.in)",
 		"url": "https://mkr.pw"
 	},
-	"funding": "https://github.com/sponsors/MKRhere",
+	"funding": [
+		{
+			"type": "github",
+			"url": "https://github.com/sponsors/MKRhere"
+		},
+		{
+			"type": "patreon",
+			"url": "https://patreon.com/MKRhere"
+		},
+		{
+			"type": "ko-fi",
+			"url": "https://ko-fi.com/MKRhere"
+		}
+	],
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/feathers-studio/comptime.ts"
