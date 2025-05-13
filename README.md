@@ -34,6 +34,7 @@ This is useful for optimising your code by moving computations from runtime to c
     -   [Via API](#via-api)
 -   [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises)
     -   [Resolving promises](#resolving-promises)
+    -   [Opting out of comptime virality](#opting-out-of-comptime-virality)
 -   [How it works](#how-it-works)
 -   [Limitations](#limitations)
 -   [Best practices](#best-practices)
@@ -49,7 +50,7 @@ comptime.ts allows you to evaluate expressions at compile time, similar to compi
 
 ```typescript
 import { sum } from "./sum.ts" with { type: "comptime" };
-import { css } from "./css.ts" with { type: "comptime" };
+import { css } from "@emotion/css" with { type: "comptime" };
 
 console.log(sum(1, 2));
 console.log(css`
@@ -58,11 +59,11 @@ console.log(css`
 `);
 ```
 
-Gets compiled to:
+Compiles to:
 
 ```typescript
 console.log(3);
-console.log("h8b3f2c");
+console.log("css-x2wxma");
 ```
 
 Apart from function calls and tagged template literals, all sorts of expressions are supported (even complex ones like index access and simple ones like imported constants). The only limitation is that the resultant value must be serialisable to JSON.
@@ -165,6 +166,54 @@ const x = 3;
 
 > **Note**: The compiler always resolves promises returned by the evaluation, but this might not reflect in your types, in which case it's useful to use the `comptime()` function to infer the correct type.
 
+### Opting out of comptime virality
+
+Normally, `comptime.ts` will eagerly extend comptime to expressions that include a comptime expression.
+
+```ts
+import { foo } from "./foo.ts" with { type: "comptime" };
+
+const x = foo().bar[1];
+```
+
+Compiles to:
+
+```ts
+const x = 2;
+```
+
+Notice how the whole expression, `foo().bar[1]`, is evaluated at compile time. You can opt-out of this behaviour by wrapping your expression in parentheses.
+
+<!-- prettier-ignore -->
+```ts
+const x = (foo().bar)[1];
+```
+
+Compiles to:
+
+<!-- prettier-ignore -->
+```ts
+const x = ([1, 2])[1];
+```
+
+In this case, `foo().bar` is evaluated at runtime, but `[1]` is left untouched.
+
+> **Note**: Your formatter might remove the extraneous parentheses, so you may need to ignore the line (such as with `prettier-ignore` comments). You are of course free to extract the expression to its own line:
+>
+> ```ts
+> const res = foo().bar;
+> const x = res[1];
+> ```
+>
+> Compiles to:
+>
+> ```ts
+> const res = [1, 2];
+> const x = res[1];
+> ```
+>
+> This also results in only `foo().bar` being evaluated at comptime, and doesn't upset your formatter.
+
 ## How it Works
 
 `comptime.ts` works by:
@@ -229,7 +278,7 @@ The following are some non-error issues that you might encounter:
     const y = sum(++a, 2);
     ```
 
-    Gets compiled to:
+    Compiles to:
 
     ```typescript
     let a = 1; // not a comptime var
@@ -252,7 +301,7 @@ The following are some non-error issues that you might encounter:
     const y = sum(state.a, 2);
     ```
 
-    Gets compiled to:
+    Compiles to:
 
     ```typescript
     const x = 4;

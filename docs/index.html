@@ -74,6 +74,7 @@
 </li>
 <li><a href="#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises">Forcing comptime evaluation</a><ul>
 <li><a href="#resolving-promises">Resolving promises</a></li>
+<li><a href="#opting-out-of-comptime-virality">Opting out of comptime virality</a></li>
 </ul>
 </li>
 <li><a href="#how-it-works">How it works</a></li>
@@ -87,7 +88,7 @@
 <p>comptime.ts allows you to evaluate expressions at compile time, similar to compile-time macros in other languages. This can help optimise your code by moving computations from runtime to compile time.</p>
 <h3>Example</h3>
 <pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
-import { css } from &quot;./css.ts&quot; with { type: &quot;comptime&quot; };
+import { css } from &quot;@emotion/css&quot; with { type: &quot;comptime&quot; };
 
 console.log(sum(1, 2));
 console.log(css`
@@ -95,9 +96,9 @@ console.log(css`
   font-size: 16px;
 `);
 </code></pre>
-<p>Gets compiled to:</p>
+<p>Compiles to:</p>
 <pre><code class="language-typescript">console.log(3);
-console.log(&quot;h8b3f2c&quot;);
+console.log(&quot;css-x2wxma&quot;);
 </code></pre>
 <p>Apart from function calls and tagged template literals, all sorts of expressions are supported (even complex ones like index access and simple ones like imported constants). The only limitation is that the resultant value must be serialisable to JSON.</p>
 <blockquote>
@@ -166,6 +167,35 @@ await comptimeCompiler({ tsconfigPath: &quot;tsconfig.json&quot; }, &quot;./out&
 <blockquote>
 <p><strong>Note</strong>: The compiler always resolves promises returned by the evaluation, but this might not reflect in your types, in which case it&#39;s useful to use the <code>comptime()</code> function to infer the correct type.</p>
 </blockquote>
+<h3>Opting out of comptime virality</h3>
+<p>Normally, <code>comptime.ts</code> will eagerly extend comptime to expressions that include a comptime expression.</p>
+<pre><code class="language-ts">import { foo } from &quot;./foo.ts&quot; with { type: &quot;comptime&quot; };
+
+const x = foo().bar[1];
+</code></pre>
+<p>Compiles to:</p>
+<pre><code class="language-ts">const x = 2;
+</code></pre>
+<p>Notice how the whole expression, <code>foo().bar[1]</code>, is evaluated at compile time. You can opt-out of this behaviour by wrapping your expression in parentheses.</p>
+<!-- prettier-ignore -->
+<pre><code class="language-ts">const x = (foo().bar)[1];
+</code></pre>
+<p>Compiles to:</p>
+<!-- prettier-ignore -->
+<pre><code class="language-ts">const x = ([1, 2])[1];
+</code></pre>
+<p>In this case, <code>foo().bar</code> is evaluated at runtime, but <code>[1]</code> is left untouched.</p>
+<blockquote>
+<p><strong>Note</strong>: Your formatter might remove the extraneous parentheses, so you may need to ignore the line (such as with <code>prettier-ignore</code> comments). You are of course free to extract the expression to its own line:</p>
+<pre><code class="language-ts">const res = foo().bar;
+const x = res[1];
+</code></pre>
+<p>Compiles to:</p>
+<pre><code class="language-ts">const res = [1, 2];
+const x = res[1];
+</code></pre>
+<p>This also results in only <code>foo().bar</code> being evaluated at comptime, and doesn&#39;t upset your formatter.</p>
+</blockquote>
 <h2>How it Works</h2>
 <p><code>comptime.ts</code> works by:</p>
 <ol>
@@ -229,7 +259,7 @@ const x = sum(++a, 2);
 ++a;
 const y = sum(++a, 2);
 </code></pre>
-<p> Gets compiled to:</p>
+<p> Compiles to:</p>
 <pre><code class="language-typescript">let a = 1; // not a comptime var
 
 const x = 4;
@@ -246,7 +276,7 @@ const x = sum(++state.a, 2);
 ++state.a;
 const y = sum(state.a, 2);
 </code></pre>
-<p> Gets compiled to:</p>
+<p> Compiles to:</p>
 <pre><code class="language-typescript">const x = 4;
 3; // because of the ++a in previous line
 const y = 5;
