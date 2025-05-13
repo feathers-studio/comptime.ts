@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -36,7 +37,8 @@
 	<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-	<main><h1>Errors</h1>
+<main>
+<h1>Errors</h1>
 <p>(<a href="../">back to home</a>)</p>
 <p>Errors happen while writing code. And it can be hard to diagnose comptime evaluations, since you don&#39;t see the constructed code block that&#39;s being executed for each expression. <code>comptime.ts</code> attempts to provide as much information as possible to help you debug and fix issues.</p>
 <p><img src="/error.jpg" alt="Compile Error"></p>
@@ -215,7 +217,7 @@ const x = comptime(1 + 2); // Now in comptime context
 		if (e.key === "Escape") {
 			const scrollY = window.scrollY;
 			window.location.hash = "";
-			window.scrollTo(0, scrollY);;
+			window.scrollTo(0, scrollY);
 		}
 	});
 </script>
