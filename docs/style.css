@@ -214,10 +214,11 @@ code {
 
 /* `code` NOT inside `pre` */
 code:not(pre code) {
-	padding: 0.2em 0.6em;
+	padding: 0 0.4em;
 	border-radius: 0.4rem;
 	margin-block-start: 0.2em;
 	display: inline-block;
+	background: #222;
 }
 
 ul,

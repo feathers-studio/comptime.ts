@@ -32,7 +32,7 @@ This is useful for optimising your code by moving computations from runtime to c
     -   [With Vite](#with-vite)
     -   [Command Line Interface](#command-line-interface)
     -   [Via API](#via-api)
--   [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions)
+-   [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises)
 -   [How it works](#how-it-works)
 -   [Limitations](#limitations)
 -   [Best practices](#best-practices)
@@ -125,11 +125,13 @@ import { comptimeCompiler } from "comptime.ts";
 await comptimeCompiler({ tsconfigPath: "tsconfig.json" }, "./out");
 ```
 
-## Forcing comptime evaluation of arbitrary expressions
+## Forcing comptime evaluation of arbitrary expressions (and resolving promises)
 
 We can abuse the fact that any function imported with the `type: "comptime"` option will be evaluated at compile time.
 
-This library exports a `comptime` function that can be used to force comptime evaluation of an expression. This function is a no-op that simply returns the value it was given. But as long as you import it with the `type: "comptime"` option, it will be evaluated at compile time, including any expressions it contains.
+This library exports a `comptime()` function that can be used to force comptime evaluation of an expression. It has to be imported with the `"comptime"` attribute. Any expressions contained within it will be evaluated at compile time. If the result is a promise, the resolved value will be inlined.
+
+> **Note**: Technically the `comptime()` function by itself doesn't do anything by itself. It's an identity function. It's the `with { type: "comptime" }` attribute that makes the compiler evaluate the expression at compile time.
 
 ```ts
 import { comptime } from "comptime.ts" with { type: "comptime" };
@@ -146,6 +148,20 @@ When the compiler is run, the expression will be evaluated at compile time.
 ```ts
 const x = 3;
 ```
+
+### Resolving promises
+
+```ts
+const x = comptime(Promise.resolve(1 + 2));
+```
+
+When the compiler is run, the promise will be resolved and the result will be inlined at compile time.
+
+```ts
+const x = 3;
+```
+
+> **Note**: The compiler always resolves promises returned by the evaluation, but this might not reflect in your types, in which case it's useful to use the `comptime()` function to infer the correct type.
 
 ## How it Works
 

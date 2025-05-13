@@ -70,7 +70,7 @@
 <li><a href="#via-api">Via API</a></li>
 </ul>
 </li>
-<li><a href="#forcing-comptime-evaluation-of-arbitrary-expressions">Forcing comptime evaluation</a></li>
+<li><a href="#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises">Forcing comptime evaluation</a></li>
 <li><a href="#how-it-works">How it works</a></li>
 <li><a href="#limitations">Limitations</a></li>
 <li><a href="#best-practices">Best practices</a></li>
@@ -137,9 +137,12 @@ export default defineConfig({
 
 await comptimeCompiler({ tsconfigPath: &quot;tsconfig.json&quot; }, &quot;./out&quot;);
 </code></pre>
-<h2>Forcing comptime evaluation of arbitrary expressions</h2>
+<h2>Forcing comptime evaluation of arbitrary expressions (and resolving promises)</h2>
 <p>We can abuse the fact that any function imported with the <code>type: &quot;comptime&quot;</code> option will be evaluated at compile time.</p>
-<p>This library exports a <code>comptime</code> function that can be used to force comptime evaluation of an expression. This function is a no-op that simply returns the value it was given. But as long as you import it with the <code>type: &quot;comptime&quot;</code> option, it will be evaluated at compile time, including any expressions it contains.</p>
+<p>This library exports a <code>comptime()</code> function that can be used to force comptime evaluation of an expression. It has to be imported with the <code>&quot;comptime&quot;</code> attribute. Any expressions contained within it will be evaluated at compile time. If the result is a promise, the resolved value will be inlined.</p>
+<blockquote>
+<p><strong>Note</strong>: Technically the <code>comptime()</code> function by itself doesn&#39;t do anything by itself. It&#39;s an identity function. It&#39;s the <code>with { type: &quot;comptime&quot; }</code> attribute that makes the compiler evaluate the expression at compile time.</p>
+</blockquote>
 <pre><code class="language-ts">import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
 </code></pre>
 <p>Use it to force comptime evaluation of an expression.</p>
@@ -148,6 +151,15 @@ await comptimeCompiler({ tsconfigPath: &quot;tsconfig.json&quot; }, &quot;./out&
 <p>When the compiler is run, the expression will be evaluated at compile time.</p>
 <pre><code class="language-ts">const x = 3;
 </code></pre>
+<h3>Resolving promises</h3>
+<pre><code class="language-ts">const x = comptime(Promise.resolve(1 + 2));
+</code></pre>
+<p>When the compiler is run, the promise will be resolved and the result will be inlined at compile time.</p>
+<pre><code class="language-ts">const x = 3;
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: The compiler always resolves promises returned by the evaluation, but this might not reflect in your types, in which case it&#39;s useful to use the <code>comptime()</code> function to infer the correct type.</p>
+</blockquote>
 <h2>How it Works</h2>
 <p><code>comptime.ts</code> works by:</p>
 <ol>
