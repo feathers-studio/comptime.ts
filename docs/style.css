@@ -3,6 +3,8 @@
 	font-feature-settings: "liga" 1, "calt" 1; /* fix for Chrome */
 	font-size: 14px;
 	scroll-behavior: smooth;
+
+	--theme: #7759ff;
 }
 
 * {
@@ -28,8 +30,11 @@ body {
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji",
 		"Segoe UI Emoji", "Segoe UI Symbol";
 	line-height: 1.5;
+}
 
+main {
 	max-width: 800px;
+	overflow-x: hidden;
 	margin-inline: auto;
 	margin-block: 0;
 	padding: 2rem 2rem;
@@ -53,29 +58,6 @@ a:hover {
 	outline-width: 0;
 }
 
-.header-link {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-	text-decoration: none;
-	color: inherit;
-	translate: -1.4rem 0;
-
-	&:hover {
-		text-decoration: none;
-	}
-}
-
-.linker {
-	font-size: 0.8rem;
-	opacity: 0;
-	transition: opacity 0.2s ease-in-out;
-}
-
-.header-link:hover .linker {
-	opacity: 1;
-}
-
 strong {
 	font-weight: inherit;
 }
@@ -96,7 +78,7 @@ pre {
 }
 
 a {
-	color: #7759ff;
+	color: var(--theme);
 	text-decoration: none;
 }
 
@@ -117,6 +99,61 @@ h2,
 h3 {
 	margin: 1rem 0;
 	color: #ccc;
+	width: fit-content;
+	position: relative;
+
+	&::before,
+	&::after {
+		content: "";
+		display: block;
+		position: absolute;
+		z-index: -1;
+		top: 50%;
+		left: -2rem;
+		width: 0.2rem;
+		height: 120%;
+		translate: 0 -50%;
+		background-color: var(--theme);
+		opacity: 0;
+		transition: opacity 400ms ease-in-out;
+	}
+
+	&:target::before {
+		width: 100vw;
+	}
+
+	&:target::before {
+		opacity: 0.1;
+	}
+
+	&:target::after {
+		opacity: 0.5;
+	}
+}
+
+.header-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	text-decoration: none;
+	color: inherit;
+
+	&:hover {
+		text-decoration: none;
+	}
+}
+
+.linker {
+	position: absolute;
+	left: 0;
+	translate: -150% 0;
+	font-size: 0.8rem;
+	opacity: 0;
+	transition: opacity 0.2s ease-in-out;
+}
+
+.header-link:hover .linker {
+	opacity: 1;
 }
 
 h1 {
@@ -158,6 +195,7 @@ pre {
 	overflow: auto;
 	background-color: #111;
 	border-radius: 0.5rem;
+	width: 100%;
 }
 
 pre code {
@@ -173,16 +211,22 @@ code {
 	border-radius: 0.2rem;
 }
 
-:checked + .radio-label {
-	position: relative;
-	z-index: 1;
-	border-color: #0366d6;
+/* `code` NOT inside `pre` */
+code:not(pre code) {
+	padding: 0.2em 0.6em;
+	border-radius: 0.4rem;
+	margin-block-start: 0.2em;
+	display: inline-block;
 }
 
 ul,
 ol {
 	padding-inline-start: 1.8rem;
 	margin: 0;
+}
+
+hr {
+	margin-block: 4rem;
 }
 
 @media print {
