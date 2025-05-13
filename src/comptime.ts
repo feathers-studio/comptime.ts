@@ -4,7 +4,6 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import MagicString from "magic-string";
 import * as ts from "typescript";
-import { type FilterPattern, createFilter } from "vite";
 import { formatSourceError } from "./formatSourceError.ts";
 import { box, COMPTIME_ERRORS, type ComptimeError, getErr } from "./errors.ts";
 import { format } from "node:util";
@@ -234,8 +233,6 @@ function isNodeModules(filePath: string): boolean {
 }
 
 interface BaseConfig {
-	include?: FilterPattern;
-	exclude?: FilterPattern;
 	resolver?: ModuleResolver;
 }
 
@@ -256,6 +253,8 @@ interface ConfigByImplicitConfig extends BaseConfig {
 	tsconfig?: never;
 	tsconfigPath?: never;
 }
+
+type Filterable<T> = T & { filter?: (id: string) => boolean };
 
 export type GetComptimeReplacementsOpts = ConfigByConfig | ConfigByPath | ConfigByImplicitConfig;
 
@@ -300,9 +299,7 @@ const logs = {
 	evalContext: w("comptime:eval"),
 };
 
-export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts): Promise<Replacements> {
-	const filter = createFilter(opts?.include, opts?.exclude);
-
+export async function getComptimeReplacements(opts?: Filterable<GetComptimeReplacementsOpts>): Promise<Replacements> {
 	const { configDir, tsConfig } = getTsConfig(opts);
 	const options = ts.parseJsonConfigFileContent(tsConfig, ts.sys, configDir);
 	const program = ts.createProgram(
@@ -312,6 +309,7 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 	const checker = program.getTypeChecker();
 
 	const allowedFiles = new Set(options.fileNames.map(f => path.resolve(f)));
+	const filter = opts?.filter;
 
 	return Object.fromEntries(
 		await Promise.all(
@@ -319,7 +317,7 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 				const resolved = path.resolve(file.fileName);
 				if (!allowedFiles.has(resolved)) return [resolved, []];
 				if (isNodeModules(resolved)) return [resolved, []];
-				if (!filter(resolved)) return [resolved, []];
+				if (filter && !filter(resolved)) return [resolved, []];
 
 				const comptimeImports = query<ts.ImportDeclaration>(file, ts.SyntaxKind.ImportDeclaration, each => {
 					const elements = each.attributes?.elements;
