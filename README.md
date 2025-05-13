@@ -33,6 +33,7 @@ This is useful for optimising your code by moving computations from runtime to c
     -   [Command Line Interface](#command-line-interface)
     -   [Via API](#via-api)
 -   [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises)
+    -   [Resolving promises](#resolving-promises)
 -   [How it works](#how-it-works)
 -   [Limitations](#limitations)
 -   [Best practices](#best-practices)
