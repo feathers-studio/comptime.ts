@@ -1,10 +1,17 @@
 import { readFile } from "node:fs/promises";
 
-import type { Plugin } from "vite";
+import type { FilterPattern, Plugin } from "vite";
+import { createFilter } from "vite";
 import MagicString from "magic-string";
 import { type GetComptimeReplacementsOpts, type Replacements, getComptimeReplacements } from "./comptime.ts";
 
-export async function comptime(opts?: GetComptimeReplacementsOpts): Promise<Plugin> {
+export type ComptimeVitePluginOpts = GetComptimeReplacementsOpts & {
+	include?: FilterPattern;
+	exclude?: FilterPattern;
+};
+
+export async function comptime(opts?: ComptimeVitePluginOpts): Promise<Plugin> {
+	const filter = createFilter(opts?.include, opts?.exclude);
 	let replacements: Replacements;
 
 	return {
@@ -12,7 +19,7 @@ export async function comptime(opts?: GetComptimeReplacementsOpts): Promise<Plug
 		async buildStart() {
 			const resolver = (specifier: string, importer: string) =>
 				this.resolve(specifier, importer).then(res => res?.id);
-			replacements = await getComptimeReplacements({ ...opts, resolver });
+			replacements = await getComptimeReplacements({ ...opts, resolver, filter });
 		},
 		async load(id) {
 			const replacement = replacements[id];

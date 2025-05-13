@@ -5,7 +5,8 @@
 	"type": "module",
 	"exports": {
 		".": "./lib/index.js",
-		"./vite": "./lib/vite.js"
+		"./vite": "./lib/vite.js",
+		"./bun": "./lib/bun.js"
 	},
 	"bin": {
 		"comptime.ts": "./lib/bin.js"
