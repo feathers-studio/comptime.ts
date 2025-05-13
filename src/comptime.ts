@@ -496,7 +496,18 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 						const message = formatSourceError(file, target, e, evalProgram, transpiled);
 						throw new Error(getErr(errCode, message), { cause: e });
 					}
-					const result = JSON.stringify(resolved) ?? "undefined";
+
+					// TODO: if this node will become an unused statement, remove it entirely instead of replacing it
+					let result;
+					if (resolved === undefined) result = "undefined";
+					else if (typeof resolved === "string") result = resolved;
+					else if (typeof resolved === "number") result = resolved.toString();
+					else if (typeof resolved === "boolean") result = resolved.toString();
+					else if (Array.isArray(resolved)) result = JSON.stringify(resolved);
+					// prevent bare object becoming a statement and becoming invalid syntax
+					else if (typeof resolved === "object") result = "(" + JSON.stringify(resolved) + ")";
+					// fallback to JSON.stringify for other types
+					else result = JSON.stringify(resolved);
 
 					replacements.push({ start: target.getStart(file), end: target.getEnd(), replacement: result });
 				}
