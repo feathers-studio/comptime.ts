@@ -390,7 +390,11 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 							// Choose foo() instead of foo
 							(ts.isCallExpression(parent) && parent.expression === current) ||
 							// Choose foo`bar` instead of foo
-							(ts.isTaggedTemplateExpression(parent) && parent.tag === current)
+							(ts.isTaggedTemplateExpression(parent) && parent.tag === current) ||
+							// Choose foo++ instead of foo
+							(ts.isPostfixUnaryExpression(parent) && parent.operand === current) ||
+							// Choose ++foo instead of foo
+							(ts.isPrefixUnaryExpression(parent) && parent.operand === current)
 
 							/*
 								We deliberately chose not to include ParenthesizedExpression.
