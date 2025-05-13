@@ -438,25 +438,46 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 					replacement: "",
 				}));
 
-				const replacements = filteredTargets.map(async ({ node: target }) => {
-					let errCode: ComptimeError = COMPTIME_ERRORS.CT_ERR_GET_EVALUATION;
+				const replacements = [];
 
-					let evalProgram: string = "";
-					let transpiled: string = "";
-					let resolved: unknown;
-					try {
-						evalProgram = await getEvaluation(checker, file, target);
-						errCode = COMPTIME_ERRORS.CT_ERR_SYNTAX_CHECK;
-						assertNoSyntaxErrors(evalProgram);
-						errCode = COMPTIME_ERRORS.CT_ERR_ERASE_TYPES;
-						transpiled = eraseTypes(evalProgram);
-						const context: ComptimeContext = {
+				// safe to do all this work async
+				const evaluations = await Promise.all(
+					filteredTargets.map(async ({ node: target }) => {
+						let errCode: ComptimeError = COMPTIME_ERRORS.CT_ERR_GET_EVALUATION;
+
+						let evalProgram: string = "";
+						let transpiled: string = "";
+
+						try {
+							evalProgram = await getEvaluation(checker, file, target);
+							errCode = COMPTIME_ERRORS.CT_ERR_SYNTAX_CHECK;
+							assertNoSyntaxErrors(evalProgram);
+							errCode = COMPTIME_ERRORS.CT_ERR_ERASE_TYPES;
+							transpiled = eraseTypes(evalProgram);
+						} catch (e) {
+							const message = formatSourceError(file, target, e, evalProgram, transpiled);
+							throw new Error(getErr(errCode, message), { cause: e });
+						}
+
+						return {
+							target,
+							evalProgram,
+							transpiled,
 							sourceFile: file.fileName,
 							position: {
 								start: target.getStart(file),
 								end: target.getEnd(),
 							},
 						};
+					}),
+				);
+
+				// evaluate in series to avoid race conditions
+				for (const { target, evalProgram, transpiled, ...context } of evaluations) {
+					let errCode: ComptimeError = COMPTIME_ERRORS.CT_ERR_CREATE_FUNCTION;
+
+					let resolved: unknown;
+					try {
 						logs.evalContext("\n\n" + transpiled + "\n\n-- comptime context:", context, "\n");
 						const func = new Function(
 							"__comptime_context",
@@ -469,8 +490,9 @@ export async function getComptimeReplacements(opts?: GetComptimeReplacementsOpts
 						throw new Error(getErr(errCode, message), { cause: e });
 					}
 					const result = JSON.stringify(resolved) ?? "undefined";
-					return { start: target.getStart(file), end: target.getEnd(), replacement: result };
-				});
+
+					replacements.push({ start: target.getStart(file), end: target.getEnd(), replacement: result });
+				}
 
 				return [resolved, [...removeImports, ...(await Promise.all(replacements))]] as const;
 			}),
