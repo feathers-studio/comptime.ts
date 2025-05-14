@@ -14,7 +14,12 @@ export async function comptimeCompiler(opts?: GetComptimeReplacementsOpts, outdi
 	await applyComptimeReplacements({ ...opts, outdir }, replacements);
 }
 
-declare const __comptime_symbol: symbol | undefined;
+import { AsyncLocalStorage } from "node:async_hooks";
+
+export function getComptimeContext(): ComptimeContext | undefined {
+	const local = new AsyncLocalStorage().getStore() as { __comptime_context?: ComptimeContext } | undefined;
+	return typeof local === "object" ? local?.__comptime_context : undefined;
+}
 
 /**
  * A function that returns the expression it was given.
@@ -44,7 +49,8 @@ declare const __comptime_symbol: symbol | undefined;
  * ```
  */
 export const comptime = <T>(expr: T | PromiseLike<T>): T => {
-	if (typeof __comptime_symbol === "undefined") throw new Error(getErr(COMPTIME_ERRORS.CT_ERR_NO_COMPTIME));
+	const context = getComptimeContext();
+	if (!context) throw new Error(getErr(COMPTIME_ERRORS.CT_ERR_NO_COMPTIME));
 
 	return expr as T;
 };

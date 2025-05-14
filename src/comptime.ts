@@ -2,6 +2,7 @@ import { w } from "w";
 
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { AsyncLocalStorage } from "node:async_hooks";
 import MagicString from "magic-string";
 import * as ts from "typescript";
 import { formatSourceError } from "./formatSourceError.ts";
@@ -210,7 +211,6 @@ async function getEvaluation(
 	sourceFile: ts.SourceFile,
 	node: ts.Node,
 ) {
-	const expression = node.getText();
 	const identifiers = query<ts.Identifier>(node, ts.SyntaxKind.Identifier);
 	const seen = new Set<DeclarationNode>();
 	const decls = identifiers.flatMap(idn => recursivelyGetIdentifierDeclarations(seen, checker, sourceFile, idn));
@@ -225,7 +225,10 @@ async function getEvaluation(
 		sorted.map(each => (isImportNode(each) ? getImportLine(resolver, each) : stripExportModifier(each))),
 	);
 
-	return declLines.join("\n") + "\n" + `return ${expression};`;
+	let evalProgram = "";
+	for (const line of declLines) evalProgram += "  " + line + "\n";
+	evalProgram += "  return " + node.getText();
+	return evalProgram;
 }
 
 function isNodeModules(filePath: string): boolean {
@@ -441,7 +444,8 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 						let transpiled: string = "";
 
 						try {
-							evalProgram = await getEvaluation(resolver, checker, file, target);
+							const evaluation = await getEvaluation(resolver, checker, file, target);
+							evalProgram = `async function evaluate() {\n${evaluation}\n}`;
 							errCode = COMPTIME_ERRORS.CT_ERR_SYNTAX_CHECK;
 							assertNoSyntaxErrors(evalProgram);
 							errCode = COMPTIME_ERRORS.CT_ERR_ERASE_TYPES;
@@ -490,11 +494,13 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 						}
 						const func = new Function(
 							"__comptime_context",
-							`globalThis.__comptime_symbol = Symbol.for("comptime.ts");` +
-								`return async function evaluate() { ${transpiled} };`,
-						)(context);
+							"AsyncLocalStorage",
+							"const local = new AsyncLocalStorage();\n" +
+								transpiled +
+								"\nreturn local.run({ __comptime_context }, evaluate);",
+						);
 						errCode = COMPTIME_ERRORS.CT_ERR_EVALUATE;
-						resolved = await func();
+						resolved = await func(context, AsyncLocalStorage);
 					} catch (e) {
 						const message = formatSourceError(file, target, e, evalProgram, transpiled);
 						throw new Error(getErr(errCode, message), { cause: e });
