@@ -61,9 +61,15 @@
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
-		"marked": "^15.0.11"
-	},
-	"optionalDependencies": {
+		"marked": "^15.0.11",
 		"vite": "^6"
+	},
+	"peerDependencies": {
+		"vite": "^6"
+	},
+	"peerDependenciesMeta": {
+		"vite": {
+			"optional": true
+		}
 	}
 }
