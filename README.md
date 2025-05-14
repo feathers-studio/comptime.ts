@@ -131,6 +131,16 @@ Add the plugin to your Vite configuration:
 import { comptime } from "comptime.ts/vite";
 
 export default defineConfig({
+	plugins: [comptime()],
+});
+```
+
+In case `comptime.ts` is significantly slowing down your dev server, and your comptime functions behave identically at runtime and comptime, you may enable it only in production builds:
+
+```typescript
+import { comptime } from "comptime.ts/vite";
+
+export default defineConfig({
 	build: {
 		rollupOptions: {
 			plugins: [comptime()],
@@ -138,8 +148,6 @@ export default defineConfig({
 	},
 });
 ```
-
-> **Note**: We recommend only enabling this in production builds because it will increase build time.
 
 ### With Bun bundler
 
