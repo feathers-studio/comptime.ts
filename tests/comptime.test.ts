@@ -6,6 +6,8 @@ import { comptimeCompiler } from "../src/index.ts";
 
 const randId = () => Math.random().toString(36).substring(2, 15);
 
+const dir = join(__dirname, "..");
+
 describe("comptime", () => {
 	let temp: string;
 
@@ -13,7 +15,9 @@ describe("comptime", () => {
 		temp = join(tmpdir(), randId());
 		await mkdir(temp, { recursive: true });
 		process.chdir(temp);
+
 		await writeFile(join(temp, "package.json"), `{"name": "test", "version": "1.0.0", "type": "module"}`);
+
 		await writeFile(
 			join(temp, "tsconfig.json"),
 			`
@@ -29,6 +33,8 @@ describe("comptime", () => {
 			}
 			`,
 		);
+
+		await file("node_modules/comptime.ts/index.js", `export * from "${join(dir, "src/index.ts")}";`);
 	});
 
 	afterEach(async () => {
@@ -42,11 +48,11 @@ describe("comptime", () => {
 		return path;
 	};
 
-	const getCompiled = async (name: string) => {
+	const getCompiled = async (name?: string) => {
 		const tsconfigPath = join(temp, "tsconfig.json");
 		const outdir = join(temp, "out");
 		await comptimeCompiler({ tsconfigPath }, outdir);
-		return await readFile(resolve(outdir, name), "utf-8");
+		if (name) return await readFile(resolve(outdir, name), "utf-8");
 	};
 
 	it("should work", async () => {
@@ -376,7 +382,6 @@ describe("comptime", () => {
 	});
 
 	it("should force comptime evaluation of an expression", async () => {
-		await file("node_modules/comptime.ts/index.js", `export const comptime = x => x;`);
 		await file(
 			"foo.ts",
 			`
@@ -396,7 +401,6 @@ describe("comptime", () => {
 	});
 
 	it("should force comptime evaluation of a complex expression", async () => {
-		await file("node_modules/comptime.ts/index.js", `export const comptime = x => x;`);
 		await file(
 			"foo.ts",
 			`
@@ -428,7 +432,6 @@ describe("comptime", () => {
 	});
 
 	it("should evaluate asynchronous expressions", async () => {
-		await file("node_modules/comptime.ts/index.js", `export const comptime = x => x;`);
 		await file(
 			"foo.ts",
 			`
@@ -480,7 +483,6 @@ describe("comptime", () => {
 	});
 
 	it("should work even if some statements are export declarations", async () => {
-		await file("node_modules/comptime.ts/index.js", `export const comptime = x => x;`);
 		await file(
 			"foo.ts",
 			`
@@ -588,5 +590,54 @@ describe("comptime", () => {
 			console.log(2);
 		`;
 		return expect(result).toEqual(expected);
+	});
+
+	it("should defer functions to be executed after comptime evaluation", async () => {
+		const fooname = await file(
+			"foo.ts",
+			`
+			import { x } from "./baz.ts" with { type: "comptime" };
+			console.log(x);
+
+			import { comptime, getComptimeContext } from "comptime.ts" with { type: "comptime" };
+			import { existsSync, writeFileSync } from "node:fs" with { type: "comptime" };
+			
+			if (existsSync("foo.txt")) throw new Error("foo.txt should not exist yet");
+			if (existsSync("bar.txt")) throw new Error("bar.txt should not exist yet");
+			comptime.defer(() => {
+				const context = getComptimeContext();
+				writeFileSync("foo.txt", context.sourceFile);
+			});
+		`,
+		);
+		const barname = await file(
+			"bar.ts",
+			`
+			import { x } from "./baz.ts" with { type: "comptime" };
+			console.log(x);
+
+			import { comptime, getComptimeContext } from "comptime.ts" with { type: "comptime" };
+			import { existsSync, writeFileSync } from "node:fs" with { type: "comptime" };
+			
+			if (existsSync("foo.txt")) throw new Error("foo.txt should not exist yet");
+			if (existsSync("bar.txt")) throw new Error("bar.txt should not exist yet");
+			comptime.defer(() => {
+				const context = getComptimeContext();
+				writeFileSync("bar.txt", context.sourceFile);
+			});
+		`,
+		);
+		await file(
+			"baz.ts",
+			`
+			export const x = 2;
+		`,
+		);
+
+		await getCompiled();
+		const foo = await readFile(join(dirname(fooname), "foo.txt"), "utf-8");
+		const bar = await readFile(join(dirname(fooname), "bar.txt"), "utf-8");
+		expect(foo).toEqual(fooname);
+		expect(bar).toEqual(barname);
 	});
 });

@@ -19,7 +19,7 @@ export const COMPTIME_ERRORS = {
 	CT_ERR_NO_COMPTIME: "CT_ERR_NO_COMPTIME",
 } as const;
 
-export type ComptimeError = (typeof COMPTIME_ERRORS)[keyof typeof COMPTIME_ERRORS];
+export type ComptimeErrorKind = (typeof COMPTIME_ERRORS)[keyof typeof COMPTIME_ERRORS];
 
 export const COMPTIME_ERRORS_MESSAGES = {
 	[COMPTIME_ERRORS.CT_ERR_GET_EVALUATION]:
@@ -29,12 +29,12 @@ export const COMPTIME_ERRORS_MESSAGES = {
 	[COMPTIME_ERRORS.CT_ERR_CREATE_FUNCTION]: "Error occurred while creating a new Function.",
 	[COMPTIME_ERRORS.CT_ERR_EVALUATE]: "Error occurred while evaluating the expression.",
 	[COMPTIME_ERRORS.CT_ERR_NO_COMPTIME]: [
-		"comptime() must be called in a comptime context, but was called at runtime.",
+		"This function must be called in a comptime context, but was called at runtime.",
 		'Are you missing `with { type: "comptime" }` or a compile-step?\n',
 	].join("\n\n"),
 } as const;
 
-export const getErr = (code: ComptimeError, context?: string) =>
+export const getErr = (code: ComptimeErrorKind, context?: string) =>
 	"\n\n" +
 	box(
 		[
@@ -53,3 +53,9 @@ export const getErr = (code: ComptimeError, context?: string) =>
 		},
 	) +
 	"\n";
+
+export class ComptimeError extends Error {
+	constructor(code: ComptimeErrorKind, context?: string, cause?: unknown) {
+		super(getErr(code, context), { cause });
+	}
+}

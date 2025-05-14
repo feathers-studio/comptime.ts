@@ -6,7 +6,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import MagicString from "magic-string";
 import * as ts from "typescript";
 import { formatSourceError } from "./formatSourceError.ts";
-import { box, COMPTIME_ERRORS, type ComptimeError, getErr } from "./errors.ts";
+import { box, COMPTIME_ERRORS, ComptimeError, type ComptimeErrorKind } from "./errors.ts";
 import { format } from "node:util";
 import { getModuleResolver, type ModuleResolver } from "./resolve.ts";
 
@@ -290,13 +290,18 @@ function getTsConfig(opts?: GetComptimeReplacementsOpts): { configDir: string; t
 	}
 }
 
+export type Defer = () => void | Promise<void>;
+
 export interface ComptimeContext {
 	sourceFile: string;
+	deferQueue: Defer[];
 	position: {
 		start: number;
 		end: number;
 	};
 }
+
+export const asyncLocalStore = new AsyncLocalStorage<{ __comptime_context?: ComptimeContext }>();
 
 const logs = {
 	evalContext: w("comptime:eval"),
@@ -314,7 +319,9 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 	const allowedFiles = new Set(options.fileNames.map(f => path.resolve(f)));
 	const filter = opts?.filter;
 
-	return Object.fromEntries(
+	const deferQueue: Defer[] = [];
+
+	const replacements = Object.fromEntries(
 		await Promise.all(
 			program.getSourceFiles().map(async file => {
 				const resolved = path.resolve(file.fileName);
@@ -438,7 +445,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 				// safe to do all this work async
 				const evaluations = await Promise.all(
 					filteredTargets.map(async ({ node: target }) => {
-						let errCode: ComptimeError = COMPTIME_ERRORS.CT_ERR_GET_EVALUATION;
+						let errCode: ComptimeErrorKind = COMPTIME_ERRORS.CT_ERR_GET_EVALUATION;
 
 						let evalProgram: string = "";
 						let transpiled: string = "";
@@ -452,13 +459,14 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 							transpiled = eraseTypes(evalProgram);
 						} catch (e) {
 							const message = formatSourceError(file, target, e, evalProgram, transpiled);
-							throw new Error(getErr(errCode, message), { cause: e });
+							throw new ComptimeError(errCode, message, e);
 						}
 
 						return {
 							target,
 							evalProgram,
 							transpiled,
+							deferQueue,
 							sourceFile: file.fileName,
 							position: {
 								start: target.getStart(file),
@@ -470,7 +478,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 
 				// evaluate in series to avoid race conditions
 				for (const { target, evalProgram, transpiled, ...context } of evaluations) {
-					let errCode: ComptimeError = COMPTIME_ERRORS.CT_ERR_CREATE_FUNCTION;
+					let errCode: ComptimeErrorKind = COMPTIME_ERRORS.CT_ERR_CREATE_FUNCTION;
 
 					let resolved: unknown;
 					try {
@@ -494,16 +502,14 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 						}
 						const func = new Function(
 							"__comptime_context",
-							"AsyncLocalStorage",
-							"const local = new AsyncLocalStorage();\n" +
-								transpiled +
-								"\nreturn local.run({ __comptime_context }, evaluate);",
+							"asyncLocalStore",
+							transpiled + "\nreturn asyncLocalStore.run({ __comptime_context }, evaluate);",
 						);
 						errCode = COMPTIME_ERRORS.CT_ERR_EVALUATE;
-						resolved = await func(context, AsyncLocalStorage);
+						resolved = await func(context, asyncLocalStore);
 					} catch (e) {
 						const message = formatSourceError(file, target, e, evalProgram, transpiled);
-						throw new Error(getErr(errCode, message), { cause: e });
+						throw new ComptimeError(errCode, message, e);
 					}
 
 					// TODO: if this node will become an unused statement, remove it entirely instead of replacing it
@@ -522,6 +528,9 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 			}),
 		),
 	);
+
+	for (const fn of deferQueue) await fn();
+	return replacements;
 }
 
 export type ApplyComptimeReplacementsOpts = GetComptimeReplacementsOpts & {

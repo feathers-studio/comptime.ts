@@ -3,8 +3,10 @@ import {
 	getComptimeReplacements,
 	type GetComptimeReplacementsOpts,
 	type ComptimeContext,
+	type Defer,
+	asyncLocalStore,
 } from "./comptime.ts";
-import { COMPTIME_ERRORS, getErr } from "./errors.ts";
+import { COMPTIME_ERRORS, ComptimeError } from "./errors.ts";
 
 export type { ComptimeFunction, Replacements, ComptimeContext } from "./comptime.ts";
 export { getComptimeReplacements, applyComptimeReplacements };
@@ -14,11 +16,31 @@ export async function comptimeCompiler(opts?: GetComptimeReplacementsOpts, outdi
 	await applyComptimeReplacements({ ...opts, outdir }, replacements);
 }
 
-import { AsyncLocalStorage } from "node:async_hooks";
-
 export function getComptimeContext(): ComptimeContext | undefined {
-	const local = new AsyncLocalStorage().getStore() as { __comptime_context?: ComptimeContext } | undefined;
+	const local = asyncLocalStore.getStore();
 	return typeof local === "object" ? local?.__comptime_context : undefined;
+}
+
+/**
+ * Defer a function to be executed after comptime evaluation of all modules.
+ *
+ * ## Usage
+ *
+ * ```ts
+ * comptime.defer(() => {
+ * 	writeFileSync("foo.txt", "bar");
+ * });
+ * ```
+ *
+ * Please note that while all deferred functions are guaranteed to be executed after comptime evaluation,
+ * they are not guaranteed to be executed in any specific order because modules are evaluated concurrently.
+ */
+function defer(fn: Defer) {
+	const context = getComptimeContext();
+	if (!context) throw new ComptimeError(COMPTIME_ERRORS.CT_ERR_NO_COMPTIME, "Invalid `comptime.defer()` call");
+	context.deferQueue.push(() => {
+		return asyncLocalStore.run({ __comptime_context: context }, fn);
+	});
 }
 
 /**
@@ -48,9 +70,12 @@ export function getComptimeContext(): ComptimeContext | undefined {
  * const x = 3;
  * ```
  */
-export const comptime = <T>(expr: T | PromiseLike<T>): T => {
+function comptime<T>(expr: T | PromiseLike<T>): T {
 	const context = getComptimeContext();
-	if (!context) throw new Error(getErr(COMPTIME_ERRORS.CT_ERR_NO_COMPTIME));
-
+	if (!context) throw new ComptimeError(COMPTIME_ERRORS.CT_ERR_NO_COMPTIME, "Invalid `comptime()` call");
 	return expr as T;
-};
+}
+
+const _comptime = Object.assign(comptime, { defer });
+
+export { _comptime as comptime };
