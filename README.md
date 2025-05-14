@@ -40,6 +40,7 @@ This is useful for optimising your code by moving computations from runtime to c
 -   [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises)
     -   [Resolving promises](#resolving-promises)
     -   [Opting out of comptime virality](#opting-out-of-comptime-virality)
+-   [Running code after comptime evaluation](#running-code-after-comptime-evaluation)
 -   [How it works](#how-it-works)
 -   [Limitations](#limitations)
 -   [Best practices](#best-practices)
@@ -87,7 +88,7 @@ const style = "css-x2wxma";
 div({ class: style });
 ```
 
-> **Note**: The `@emotion/css` import got removed from the output. You'll need to somehow add the styles back to your project, for example by side-effect loading the component files that originally called <code>css``</code> and extracting the styles with <code>getRegisteredStyles()</code> from `@emotion/css`.
+> **Note**: The `@emotion/css` import got removed from the output. You'll need to somehow add the styles back to your project somehow. See [running code after comptime evaluation](#running-code-after-comptime-evaluation) for an example of emitting the styles as a CSS file. Alternatively, you might write a bundler plugin to import the styles from `@emotion/css` and emit them as a CSS file, etc.
 
 ### 3. Calculate constants at compile time
 
@@ -272,6 +273,33 @@ In this case, `foo().bar` is evaluated at runtime, but `[1]` is left untouched.
 > ```
 >
 > This also results in only `foo().bar` being evaluated at comptime, and doesn't upset your formatter.
+
+## Running code after comptime evaluation
+
+You can use the `comptime.defer()` function to run code after comptime evaluation of all modules.
+
+This could be used, for example, to emit collected CSS from `@emotion/css` at the end of the compilation process.
+
+```ts
+import { comptime } from "comptime.ts" with { type: "comptime" };
+import { css, getRegisteredStyles } from "@emotion/css" with { type: "comptime" };
+import { writeFileSync } from "node:fs" with { type: "comptime" };
+
+const style = css`
+  color: red;
+  font-size: 16px;
+`;
+
+// ...
+
+// You only need this once in your project, it runs after all modules are evaluated
+comptime.defer(() => {
+	writeFileSync("styles.css", getRegisteredStyles());
+});
+```
+
+Please note that while all deferred functions are guaranteed to be executed after comptime evaluation,
+if multiple deferred functions exist, they are not guaranteed to be executed in any specific order because modules are evaluated concurrently.
 
 ## How it Works
 

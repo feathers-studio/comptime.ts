@@ -84,6 +84,7 @@
 <li><a href="#opting-out-of-comptime-virality">Opting out of comptime virality</a></li>
 </ul>
 </li>
+<li><a href="#running-code-after-comptime-evaluation">Running code after comptime evaluation</a></li>
 <li><a href="#how-it-works">How it works</a></li>
 <li><a href="#limitations">Limitations</a></li>
 <li><a href="#best-practices">Best practices</a></li>
@@ -117,7 +118,7 @@ div({ class: style });
 div({ class: style });
 </code></pre>
 <blockquote>
-<p><strong>Note</strong>: The <code>@emotion/css</code> import got removed from the output. You&#39;ll need to somehow add the styles back to your project, for example by side-effect loading the component files that originally called <code>css``</code> and extracting the styles with<code>getRegisteredStyles()</code>from<code>@emotion/css</code>.</p>
+<p><strong>Note</strong>: The <code>@emotion/css</code> import got removed from the output. You&#39;ll need to somehow add the styles back to your project somehow. See <a href="#running-code-after-comptime-evaluation">running code after comptime evaluation</a> for an example of emitting the styles as a CSS file. Alternatively, you might write a bundler plugin to import the styles from <code>@emotion/css</code> and emit them as a CSS file, etc.</p>
 </blockquote>
 <h3>3. Calculate constants at compile time</h3>
 <pre><code class="language-typescript">import { ms } from &quot;ms&quot; with { type: &quot;comptime&quot; };
@@ -148,6 +149,13 @@ npm install comptime.ts
 <pre><code class="language-typescript">import { comptime } from &quot;comptime.ts/vite&quot;;
 
 export default defineConfig({
+	plugins: [comptime()],
+});
+</code></pre>
+<p>In case <code>comptime.ts</code> is significantly slowing down your dev server, and your comptime functions behave identically at runtime and comptime, you may enable it only in production builds:</p>
+<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts/vite&quot;;
+
+export default defineConfig({
 	build: {
 		rollupOptions: {
 			plugins: [comptime()],
@@ -155,9 +163,6 @@ export default defineConfig({
 	},
 });
 </code></pre>
-<blockquote>
-<p><strong>Note</strong>: We recommend only enabling this in production builds because it will increase build time.</p>
-</blockquote>
 <h3>With Bun bundler</h3>
 <p>Add the plugin to your Bun bundler configuration:</p>
 <pre><code class="language-typescript">import { comptime } from &quot;comptime.ts/bun&quot;;
@@ -233,6 +238,27 @@ const x = res[1];
 </code></pre>
 <p>This also results in only <code>foo().bar</code> being evaluated at comptime, and doesn&#39;t upset your formatter.</p>
 </blockquote>
+<h2>Running code after comptime evaluation</h2>
+<p>You can use the <code>comptime.defer()</code> function to run code after comptime evaluation of all modules.</p>
+<p>This could be used, for example, to emit collected CSS from <code>@emotion/css</code> at the end of the compilation process.</p>
+<pre><code class="language-ts">import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
+import { css, getRegisteredStyles } from &quot;@emotion/css&quot; with { type: &quot;comptime&quot; };
+import { writeFileSync } from &quot;node:fs&quot; with { type: &quot;comptime&quot; };
+
+const style = css`
+  color: red;
+  font-size: 16px;
+`;
+
+// ...
+
+// You only need this once in your project, it runs after all modules are evaluated
+comptime.defer(() =&gt; {
+	writeFileSync(&quot;styles.css&quot;, getRegisteredStyles());
+});
+</code></pre>
+<p>Please note that while all deferred functions are guaranteed to be executed after comptime evaluation,
+if multiple deferred functions exist, they are not guaranteed to be executed in any specific order because modules are evaluated concurrently.</p>
 <h2>How it Works</h2>
 <p><code>comptime.ts</code> works by:</p>
 <ol>
