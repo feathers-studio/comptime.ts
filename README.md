@@ -88,7 +88,7 @@ const style = "css-x2wxma";
 div({ class: style });
 ```
 
-> **Note**: The `@emotion/css` import got removed from the output. You'll need to somehow add the styles back to your project somehow. See [running code after comptime evaluation](#running-code-after-comptime-evaluation) for an example of emitting the styles as a CSS file. Alternatively, you might write a bundler plugin to import the styles from `@emotion/css` and emit them as a CSS file, etc.
+> **Note**: The `@emotion/css` import got removed from the output. You'll need to somehow add the styles back to your project somehow. See [running code after comptime evaluation](#running-code-after-comptime-evaluation) for an example of emitting the styles as a CSS file. Alternatively, you might write a bundler plugin to import the CSS cache from `@emotion/css` and emit them as a CSS file, etc.
 
 ### 3. Calculate constants at compile time
 
@@ -282,7 +282,7 @@ This could be used, for example, to emit collected CSS from `@emotion/css` at th
 
 ```ts
 import { comptime } from "comptime.ts" with { type: "comptime" };
-import { css, getRegisteredStyles } from "@emotion/css" with { type: "comptime" };
+import { css, cache } from "@emotion/css" with { type: "comptime" };
 import { writeFileSync } from "node:fs" with { type: "comptime" };
 
 const style = css`
@@ -294,7 +294,11 @@ const style = css`
 
 // You only need this once in your project, it runs after all modules are evaluated
 comptime.defer(() => {
-	writeFileSync("styles.css", getRegisteredStyles());
+	const file = Object.entries(cache.registered)
+		.filter(Boolean)
+		.map(([key, value]) => `${key} {${value}}`)
+		.join("\n");
+	writeFileSync("styles.css", file);
 });
 ```
 

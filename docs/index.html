@@ -118,7 +118,7 @@ div({ class: style });
 div({ class: style });
 </code></pre>
 <blockquote>
-<p><strong>Note</strong>: The <code>@emotion/css</code> import got removed from the output. You&#39;ll need to somehow add the styles back to your project somehow. See <a href="#running-code-after-comptime-evaluation">running code after comptime evaluation</a> for an example of emitting the styles as a CSS file. Alternatively, you might write a bundler plugin to import the styles from <code>@emotion/css</code> and emit them as a CSS file, etc.</p>
+<p><strong>Note</strong>: The <code>@emotion/css</code> import got removed from the output. You&#39;ll need to somehow add the styles back to your project somehow. See <a href="#running-code-after-comptime-evaluation">running code after comptime evaluation</a> for an example of emitting the styles as a CSS file. Alternatively, you might write a bundler plugin to import the CSS cache from <code>@emotion/css</code> and emit them as a CSS file, etc.</p>
 </blockquote>
 <h3>3. Calculate constants at compile time</h3>
 <pre><code class="language-typescript">import { ms } from &quot;ms&quot; with { type: &quot;comptime&quot; };
@@ -242,7 +242,7 @@ const x = res[1];
 <p>You can use the <code>comptime.defer()</code> function to run code after comptime evaluation of all modules.</p>
 <p>This could be used, for example, to emit collected CSS from <code>@emotion/css</code> at the end of the compilation process.</p>
 <pre><code class="language-ts">import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
-import { css, getRegisteredStyles } from &quot;@emotion/css&quot; with { type: &quot;comptime&quot; };
+import { css, cache } from &quot;@emotion/css&quot; with { type: &quot;comptime&quot; };
 import { writeFileSync } from &quot;node:fs&quot; with { type: &quot;comptime&quot; };
 
 const style = css`
@@ -254,7 +254,11 @@ const style = css`
 
 // You only need this once in your project, it runs after all modules are evaluated
 comptime.defer(() =&gt; {
-	writeFileSync(&quot;styles.css&quot;, getRegisteredStyles());
+	const file = Object.entries(cache.registered)
+		.filter(Boolean)
+		.map(([key, value]) =&gt; `${key} {${value}}`)
+		.join(&quot;\n&quot;);
+	writeFileSync(&quot;styles.css&quot;, file);
 });
 </code></pre>
 <p>Please note that while all deferred functions are guaranteed to be executed after comptime evaluation,
