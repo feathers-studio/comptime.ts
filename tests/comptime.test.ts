@@ -552,7 +552,7 @@ describe("comptime", () => {
 	it("should refuse to evaluate comptime() outside of a comptime context", async () => {
 		const parent = import.meta.resolve("../src/index.ts");
 		const filename = await file("foo.ts", `import { comptime } from "${parent}"; const x = comptime(1 + 2);`);
-		// const res = await import(filename);
+		// await import(filename);
 		// import the file, causing the comptime() call to be performed at runtime outside of a comptime context
 		return expect(import(filename)).rejects.toThrow();
 	});

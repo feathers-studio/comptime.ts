@@ -1,4 +1,5 @@
-import { createRequire } from "module";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import path from "path";
 
 type MaybePromise<T> = T | Promise<T>;
@@ -6,7 +7,7 @@ type MaybePromise<T> = T | Promise<T>;
 export type ModuleResolver = (specifier: string, importer: string) => MaybePromise<string | null | undefined>;
 
 export function getModuleResolver(userResolver?: ModuleResolver): ModuleResolver {
-	const require = createRequire(import.meta.url);
+	const require = createRequire(fileURLToPath(import.meta.url));
 
 	return (specifier, importer) => {
 		// 1. User-provided resolver (e.g. from Vite plugin context)

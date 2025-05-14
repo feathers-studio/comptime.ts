@@ -87,7 +87,7 @@ const style = "css-x2wxma";
 div({ class: style });
 ```
 
-> **Note**: The `@emotion/css` import got removed from the output. You'll need to somehow add the styles back to your project, for example by side-effect loading the component files that originally called <code>css``</code> and extracting the styles with`getRegisteredStyles()`from`@emotion/css`.
+> **Note**: The `@emotion/css` import got removed from the output. You'll need to somehow add the styles back to your project, for example by side-effect loading the component files that originally called <code>css``</code> and extracting the styles with <code>getRegisteredStyles()</code> from `@emotion/css`.
 
 ### 3. Calculate constants at compile time
 
