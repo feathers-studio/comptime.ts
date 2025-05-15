@@ -15,7 +15,6 @@ export type TypeInfo =
 	| TypeInfo.ObjectInfo
 	| TypeInfo.UnionInfo
 	| TypeInfo.IntersectionInfo
-	| TypeInfo.IndexSignatureInfo
 	| TypeInfo.EnumInfo
 	| TypeInfo.VoidInfo
 	| TypeInfo.Unrepresentable;
@@ -77,23 +76,38 @@ export declare namespace TypeInfo {
 	export interface TupleInfo {
 		type: "tuple";
 		members: TypeInfo[];
-		readonly?: boolean;
+		readonly?: true;
+	}
+
+	export type TupleElementType =
+		| "required"
+		| "optional"
+		| "rest"
+		| "variadic"
+		| "fixed"
+		| "variable"
+		| "nonRequired"
+		| "nonRest";
+
+	export interface TupleElementInfo {
+		type: TypeInfo;
+		flags: TupleElementType;
 	}
 
 	export interface ObjectInfo {
 		type: "object";
 		members: Record<string, PropertyInfo>;
-		indexSignatures: IndexSignatureInfo[];
+		indexSignatures?: IndexSignatureInfo[];
 	}
 
 	export interface PropertyInfo {
 		type: TypeInfo;
-		optional: boolean;
-		readonly: boolean;
+		optional?: true;
+		readonly?: true;
 	}
 
 	export interface IndexSignatureInfo {
-		keyType: ("string" | "number" | "symbol")[];
+		keyType: "string" | "number" | "symbol";
 		valueType: TypeInfo;
 	}
 
@@ -141,8 +155,8 @@ export declare namespace TypeInfo {
 	// export interface FunctionParameterInfo {
 	// 	name: string;
 	// 	type: TypeInfo;
-	// 	optional: boolean;
-	// 	rest?: boolean;
+	// 	optional?: true;
+	// 	rest?: true;
 	// }
 
 	// export interface TypeParamInfo {
