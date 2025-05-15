@@ -231,7 +231,7 @@ async function getEvaluation(
 	return evalProgram;
 }
 
-function isNodeModules(filePath: string): boolean {
+export function isNodeModules(filePath: string): boolean {
 	return filePath.split(path.sep).includes("node_modules");
 }
 
@@ -257,11 +257,11 @@ interface ConfigByImplicitConfig extends BaseConfig {
 	tsconfigPath?: never;
 }
 
-type Filterable<T> = T & { filter?: (id: string) => boolean };
+export type Filterable<T> = T & { filter?: (id: string) => boolean };
 
 export type GetComptimeReplacementsOpts = ConfigByConfig | ConfigByPath | ConfigByImplicitConfig;
 
-function getTsConfig(opts?: GetComptimeReplacementsOpts): { configDir: string; tsConfig: ts.CompilerOptions } {
+export function getTsConfig(opts?: GetComptimeReplacementsOpts): { configDir: string; tsConfig: ts.CompilerOptions } {
 	if (opts?.tsconfig) {
 		// explicitly passed tsconfig and rootDir
 
@@ -323,22 +323,26 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 
 	const replacements = Object.fromEntries(
 		await Promise.all(
-			program.getSourceFiles().map(async file => {
-				const resolved = path.resolve(file.fileName);
+			program.getSourceFiles().map(async sourceFile => {
+				const resolved = path.resolve(sourceFile.fileName);
 				if (!allowedFiles.has(resolved)) return [resolved, []];
 				if (isNodeModules(resolved)) return [resolved, []];
 				if (filter && !filter(resolved)) return [resolved, []];
 
-				const comptimeImports = query<ts.ImportDeclaration>(file, ts.SyntaxKind.ImportDeclaration, each => {
-					const elements = each.attributes?.elements;
-					if (!elements) return false;
+				const comptimeImports = query<ts.ImportDeclaration>(
+					sourceFile,
+					ts.SyntaxKind.ImportDeclaration,
+					each => {
+						const elements = each.attributes?.elements;
+						if (!elements) return false;
 
-					const comptime = elements.some(elem => elem.value.getText().slice(1, -1) === "comptime");
+						const comptime = elements.some(elem => elem.value.getText().slice(1, -1) === "comptime");
 
-					return comptime;
-				});
+						return comptime;
+					},
+				);
 
-				const comptimeConsumers = query<ts.Identifier>(file, ts.SyntaxKind.Identifier, each => {
+				const comptimeConsumers = query<ts.Identifier>(sourceFile, ts.SyntaxKind.Identifier, each => {
 					const parent = each.parent;
 					// exclude import declarations from being considered consumers
 					if (ts.isImportSpecifier(parent) || ts.isImportClause(parent) || ts.isNamespaceImport(parent)) {
@@ -412,7 +416,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 				});
 
 				const sortedTargets = targetExpressions
-					.map(node => ({ node, start: node.getStart(file), end: node.getEnd() }))
+					.map(node => ({ node, start: node.getStart(sourceFile), end: node.getEnd() }))
 					.sort((a, b) => a.start - b.start);
 
 				/*
@@ -433,7 +437,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 				}
 
 				const removeImports = comptimeImports.map(i => ({
-					start: i.getStart(file),
+					start: i.getStart(sourceFile),
 					end: i.getEnd(),
 					replacement: "",
 				}));
@@ -451,14 +455,14 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 						let transpiled: string = "";
 
 						try {
-							const evaluation = await getEvaluation(resolver, checker, file, target);
+							const evaluation = await getEvaluation(resolver, checker, sourceFile, target);
 							evalProgram = `async function evaluate() {\n${evaluation}\n}`;
 							errCode = COMPTIME_ERRORS.CT_ERR_SYNTAX_CHECK;
 							assertNoSyntaxErrors(evalProgram);
 							errCode = COMPTIME_ERRORS.CT_ERR_ERASE_TYPES;
 							transpiled = eraseTypes(evalProgram);
 						} catch (e) {
-							const message = formatSourceError(file, target, e, evalProgram, transpiled);
+							const message = formatSourceError(sourceFile, target, e, evalProgram, transpiled);
 							throw new ComptimeError(errCode, message, e);
 						}
 
@@ -467,9 +471,9 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 							evalProgram,
 							transpiled,
 							deferQueue,
-							sourceFile: file.fileName,
+							sourceFile: sourceFile.fileName,
 							position: {
-								start: target.getStart(file),
+								start: target.getStart(sourceFile),
 								end: target.getEnd(),
 							},
 						};
@@ -483,8 +487,8 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 					let resolved: unknown;
 					try {
 						if (logs.evalContext.enabled) {
-							const lineChar = ts.getLineAndCharacterOfPosition(file, target.getStart(file));
-							const marker = `${file.fileName}:${lineChar.line + 1}:${lineChar.character + 1}`;
+							const lineChar = ts.getLineAndCharacterOfPosition(sourceFile, target.getStart(sourceFile));
+							const marker = `${sourceFile.fileName}:${lineChar.line + 1}:${lineChar.character + 1}`;
 							logs.evalContext(
 								"\n\n" +
 									box(
@@ -508,7 +512,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 						errCode = COMPTIME_ERRORS.CT_ERR_EVALUATE;
 						resolved = await func(context, asyncLocalStore);
 					} catch (e) {
-						const message = formatSourceError(file, target, e, evalProgram, transpiled);
+						const message = formatSourceError(sourceFile, target, e, evalProgram, transpiled);
 						throw new ComptimeError(errCode, message, e);
 					}
 
@@ -521,7 +525,11 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 					// fallback to JSON.stringify for other types
 					else result = JSON.stringify(resolved);
 
-					replacements.push({ start: target.getStart(file), end: target.getEnd(), replacement: result });
+					replacements.push({
+						start: target.getStart(sourceFile),
+						end: target.getEnd(),
+						replacement: result,
+					});
 				}
 
 				return [resolved, [...removeImports, ...(await Promise.all(replacements))]] as const;
@@ -534,11 +542,14 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 }
 
 export type ApplyComptimeReplacementsOpts = GetComptimeReplacementsOpts & {
-	/** Default: `$configDir/build` */
+	/** Default: `$configDir/out` */
 	outdir?: string;
 };
 
-export async function applyComptimeReplacements(opts: ApplyComptimeReplacementsOpts, replacements: Replacements) {
+export async function applyComptimeReplacements(
+	opts: Filterable<ApplyComptimeReplacementsOpts>,
+	replacements: Replacements,
+) {
 	const { configDir, tsConfig } = getTsConfig(opts);
 	const options = ts.parseJsonConfigFileContent(tsConfig, ts.sys, configDir);
 	const program = ts.createProgram(
@@ -546,29 +557,36 @@ export async function applyComptimeReplacements(opts: ApplyComptimeReplacementsO
 		options.options,
 	);
 
-	const outdir = opts.outdir ?? path.join(configDir, "build");
+	const outdir = opts.outdir ?? path.join(configDir, "out");
 
-	for await (const file of program.getSourceFiles()) {
-		const resolved = path.resolve(file.fileName);
-		if (resolved.includes("/node_modules/")) continue;
+	const allowedFiles = new Set(options.fileNames.map(f => path.resolve(f)));
+	const filter = opts?.filter;
 
-		const s = new MagicString(file.getFullText());
-		const fullPath = path.resolve(configDir, resolved);
+	await Promise.all(
+		program.getSourceFiles().map(async sourceFile => {
+			const resolved = path.resolve(sourceFile.fileName);
+			if (!allowedFiles.has(resolved)) return;
+			if (isNodeModules(resolved)) return;
+			if (filter && !filter(resolved)) return;
 
-		const repl = replacements[fullPath];
-		if (!repl) continue;
+			const s = new MagicString(sourceFile.getFullText());
+			const fullPath = path.resolve(configDir, resolved);
 
-		for (const replacement of repl) {
-			s.overwrite(replacement.start, replacement.end, replacement.replacement);
-		}
+			const repl = replacements[fullPath];
+			if (!repl) return;
 
-		const relative = path.relative(configDir, fullPath);
-		const outFile = path.join(outdir, relative);
+			for (const replacement of repl) {
+				s.overwrite(replacement.start, replacement.end, replacement.replacement);
+			}
 
-		const dir = path.dirname(outFile);
-		await mkdir(dir, { recursive: true });
+			const relative = path.relative(configDir, fullPath);
+			const outFile = path.join(outdir, relative);
 
-		console.log("Writing", outFile);
-		await writeFile(outFile, s.toString());
-	}
+			const dir = path.dirname(outFile);
+			await mkdir(dir, { recursive: true });
+
+			console.log("Writing", outFile);
+			await writeFile(outFile, s.toString());
+		}),
+	);
 }
