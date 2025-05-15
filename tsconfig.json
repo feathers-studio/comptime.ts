@@ -25,6 +25,7 @@
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false,
 
+		"rootDir": "./src",
 		"outDir": "./lib"
 	},
 	"include": ["src/**/*.ts"]

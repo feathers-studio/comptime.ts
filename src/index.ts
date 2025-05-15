@@ -5,13 +5,14 @@ import {
 	type ComptimeContext,
 	type Defer,
 	asyncLocalStore,
+	type Filterable,
 } from "./comptime.ts";
 import { COMPTIME_ERRORS, ComptimeError } from "./errors.ts";
 
 export type { ComptimeFunction, Replacements, ComptimeContext } from "./comptime.ts";
 export { getComptimeReplacements, applyComptimeReplacements };
 
-export async function comptimeCompiler(opts?: GetComptimeReplacementsOpts, outdir?: string) {
+export async function comptimeCompiler(opts?: Filterable<GetComptimeReplacementsOpts>, outdir?: string) {
 	const replacements = await getComptimeReplacements(opts);
 	await applyComptimeReplacements({ ...opts, outdir }, replacements);
 }
