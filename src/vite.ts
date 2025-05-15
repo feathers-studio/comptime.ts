@@ -2,6 +2,7 @@ import type { FilterPattern, Plugin } from "vite";
 import { createFilter } from "vite";
 import MagicString from "magic-string";
 import { type GetComptimeReplacementsOpts, type Replacements, getComptimeReplacements } from "./comptime.ts";
+import { readFile } from "node:fs/promises";
 
 export type ComptimeVitePluginOpts = GetComptimeReplacementsOpts & {
 	include?: FilterPattern;
@@ -25,10 +26,9 @@ export async function comptime(opts?: ComptimeVitePluginOpts): Promise<Plugin> {
 			const replacement = replacements[id];
 			if (!replacement) return null;
 
-			const mod = await this.load({ id });
-			if (!mod || !mod.code) throw new Error(`Failed to load ${id}`);
+			const mod = await readFile(id, "utf-8");
 
-			const s = new MagicString(mod.code);
+			const s = new MagicString(mod);
 
 			for (const r of replacement) {
 				s.overwrite(r.start, r.end, r.replacement);
