@@ -27,6 +27,13 @@ const args = parseArgs({
 		},
 	},
 });
+if (args.values.help) {
+	console.log("Usage: ts-comptime <options>");
+	console.log("Options:");
+	console.log("  -h, --help        Show help");
+	console.log("  -p, --project     Path to tsconfig.json (default: tsconfig.json)");
+	console.log("  -o, --outdir      Output directory (default: ./out)");
+}
 
 if (args.values.help) {
 	console.log("Usage: ts-comptime <options>");

@@ -226,7 +226,7 @@ const x = foo().bar[1];
 <!-- prettier-ignore -->
 <pre><code class="language-ts">const x = ([1, 2])[1];
 </code></pre>
-<p>In this case, <code>foo().bar</code> is evaluated at runtime, but <code>[1]</code> is left untouched.</p>
+<p>In this case, <code>foo().bar</code> is evaluated at comptime, but <code>[1]</code> is left untouched.</p>
 <blockquote>
 <p><strong>Note</strong>: Your formatter might remove the extraneous parentheses, so you may need to ignore the line (such as with <code>prettier-ignore</code> comments). You are of course free to extract the expression to its own line:</p>
 <pre><code class="language-ts">const res = foo().bar;
@@ -266,18 +266,17 @@ if multiple deferred functions exist, they are not guaranteed to be executed in 
 <h2>How it Works</h2>
 <p><code>comptime.ts</code> works by:</p>
 <ol>
-<li>Parsing your TypeScript code to find imports marked with <code>type: &quot;comptime&quot;</code></li>
-<li>Finding all expressions in your files that use these imports</li>
-<li>Collecting an execution block by walking up the file to find all references used by the comptime expression</li>
-<li>Evaluating the execution block in an isolated context at compile time</li>
-<li>Replacing the comptime expression with the result of the execution block</li>
+<li>Parsing your TypeScript code to find imports marked with <code>type: &quot;comptime&quot;</code>.</li>
+<li>Finding all expressions in your files that use these imports.</li>
+<li>Collecting an execution block by walking up the file to find all references used by the comptime expression.</li>
+<li>Evaluating the execution block in an isolated context at compile time.</li>
+<li>Replacing the comptime expression with the result of the execution block.</li>
 </ol>
 <h2>Limitations</h2>
 <ul>
-<li>Only JSON-serialisable values can be returned from comptime expressions</li>
-<li>The evaluation block is isolated, so certain runtime features might not be available</li>
-<li>Complex expressions might increase build time significantly</li>
-<li>Type information is not available during evaluation</li>
+<li>Only JSON-serialisable values can be returned from comptime expressions.</li>
+<li>The evaluation block is isolated, so multiple comptime expressions in the same file will be evaluated independently and may load variables from the parent scope independently, as if they were repeated per-expression.</li>
+<li>Complex expressions might increase build time significantly.</li>
 </ul>
 <h2>Best Practices</h2>
 <ul>
@@ -290,7 +289,7 @@ if multiple deferred functions exist, they are not guaranteed to be executed in 
 <li>Avoid using comptime for:<ul>
 <li>Complex runtime logic</li>
 <li>Side effects</li>
-<li>Non-deterministic operations</li>
+<li>Non-deterministic operations (unless you understand the implications)</li>
 </ul>
 </li>
 </ul>
