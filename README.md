@@ -256,7 +256,7 @@ Compiles to:
 const x = ([1, 2])[1];
 ```
 
-In this case, `foo().bar` is evaluated at runtime, but `[1]` is left untouched.
+In this case, `foo().bar` is evaluated at comptime, but `[1]` is left untouched.
 
 > **Note**: Your formatter might remove the extraneous parentheses, so you may need to ignore the line (such as with `prettier-ignore` comments). You are of course free to extract the expression to its own line:
 >
@@ -309,18 +309,17 @@ if multiple deferred functions exist, they are not guaranteed to be executed in 
 
 `comptime.ts` works by:
 
-1. Parsing your TypeScript code to find imports marked with `type: "comptime"`
-2. Finding all expressions in your files that use these imports
-3. Collecting an execution block by walking up the file to find all references used by the comptime expression
-4. Evaluating the execution block in an isolated context at compile time
-5. Replacing the comptime expression with the result of the execution block
+1. Parsing your TypeScript code to find imports marked with `type: "comptime"`.
+2. Finding all expressions in your files that use these imports.
+3. Collecting an execution block by walking up the file to find all references used by the comptime expression.
+4. Evaluating the execution block in an isolated context at compile time.
+5. Replacing the comptime expression with the result of the execution block.
 
 ## Limitations
 
--   Only JSON-serialisable values can be returned from comptime expressions
--   The evaluation block is isolated, so certain runtime features might not be available
--   Complex expressions might increase build time significantly
--   Type information is not available during evaluation
+-   Only JSON-serialisable values can be returned from comptime expressions.
+-   The evaluation block is isolated, so multiple comptime expressions in the same file will be evaluated independently and may load variables from the parent scope independently, as if they were repeated per-expression.
+-   Complex expressions might increase build time significantly.
 
 ## Best Practices
 
@@ -331,7 +330,7 @@ if multiple deferred functions exist, they are not guaranteed to be executed in 
 -   Avoid using comptime for:
     -   Complex runtime logic
     -   Side effects
-    -   Non-deterministic operations
+    -   Non-deterministic operations (unless you understand the implications)
 
 ## Troubleshooting
 
