@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from "node:util";
-import { comptimeCompiler } from "./index.ts";
+import { comptimeCompiler } from "./api.ts";
 
 const args = parseArgs({
 	options: {
@@ -21,6 +21,7 @@ const args = parseArgs({
 		},
 	},
 });
+
 if (args.values.help) {
 	console.log("Usage: ts-comptime <options>");
 	console.log("Options:");

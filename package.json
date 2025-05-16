@@ -5,6 +5,7 @@
 	"type": "module",
 	"exports": {
 		".": "./lib/index.js",
+		"./api": "./lib/api.js",
 		"./vite": "./lib/vite.js",
 		"./bun": "./lib/bun.js"
 	},
