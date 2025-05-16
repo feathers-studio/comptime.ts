@@ -183,7 +183,7 @@ bunx --bun comptime.ts --project tsconfig.json --outdir out
 Use the API directly:
 
 ```typescript
-import { comptimeCompiler } from "comptime.ts";
+import { comptimeCompiler } from "comptime.ts/api";
 
 await comptimeCompiler({ tsconfigPath: "tsconfig.json" }, "./out");
 ```
