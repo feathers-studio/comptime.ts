@@ -2,7 +2,7 @@ import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { mkdir, readFile, writeFile, rm } from "fs/promises";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { comptimeCompiler } from "../src/index.ts";
+import { comptimeCompiler } from "../src/api.ts";
 
 const randId = () => Math.random().toString(36).substring(2, 15);
 
