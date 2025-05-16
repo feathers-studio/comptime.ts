@@ -1,3 +1,5 @@
+import { process } from "./util.ts";
+
 export type Defer = () => void | Promise<void>;
 
 export interface ComptimeContext {
@@ -14,24 +16,17 @@ export interface AsyncContext<T> {
 	getStore(): T | undefined;
 }
 
-let AsyncLocalStorage: new () => AsyncContext<{ __comptime_context: ComptimeContext }>;
+export let asyncLocalStore: AsyncContext<{ __comptime_context: ComptimeContext }>;
 
 try {
-	// avoid an unnecessary import if we're not in a node-like environment
-	if (typeof process === "undefined") throw new Error();
-	AsyncLocalStorage = await import("node:async_hooks").then(m => m.AsyncLocalStorage);
+	// avoid an unnecessary import attempt if we're not in a node-like environment
+	if (!process) throw new Error();
+	const AsyncLocalStorage = (await import("node:async_hooks")).AsyncLocalStorage;
+	asyncLocalStore = new AsyncLocalStorage();
 } catch {
-	// if we're not in a node-like environment, use a noop implementation, no need to error
-	class NoopAsyncLocalStorage<T> implements AsyncContext<T> {
-		run<R>(_: T, callback: () => R): R {
-			return callback();
-		}
-		getStore(): T | undefined {
-			return undefined;
-		}
-	}
-
-	AsyncLocalStorage = NoopAsyncLocalStorage;
+	// noop AsyncLocalStorage implementation if we're not in a node-like environment
+	asyncLocalStore = {
+		run: (_, callback) => callback(),
+		getStore: () => undefined,
+	};
 }
-
-export const asyncLocalStore = AsyncLocalStorage && new AsyncLocalStorage();

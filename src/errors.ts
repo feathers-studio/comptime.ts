@@ -1,26 +1,17 @@
+import { process } from "./util.ts";
+
 import type { Options } from "boxen";
 
-let boxen: typeof import("boxen")["default"] | undefined;
+export let box = (text: string, options?: Options, skip?: boolean): string => text;
 
-try {
-	if (typeof process === "undefined") throw new Error();
-	boxen = (await import("boxen")).default;
-} catch {
-	boxen = undefined;
+if (!Boolean(process?.env.NO_BOX)) {
+	try {
+		if (!process) throw new Error();
+		const boxen = (await import("boxen")).default;
+		const pad = (text: string) => text.replace(/^.*$/gm, line => " " + line + " ");
+		box = (text, options, skip) => (skip ? text : boxen(pad(text), options));
+	} catch {}
 }
-
-const NO_BOX = Boolean(process?.env.NO_BOX);
-
-export const box = (text: string, options?: Options, skip?: boolean) =>
-	boxen && !skip && !NO_BOX
-		? boxen(
-				text
-					.split("\n")
-					.map(l => " " + l + " ")
-					.join("\n"),
-				options,
-		  )
-		: text;
 
 export const COMPTIME_ERRORS = {
 	CT_ERR_GET_EVALUATION: "CT_ERR_GET_EVALUATION",

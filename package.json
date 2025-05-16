@@ -3,6 +3,7 @@
 	"version": "0.0.0-dev",
 	"module": "index.ts",
 	"type": "module",
+	"sideEffects": false,
 	"exports": {
 		".": "./lib/index.js",
 		"./api": "./lib/api.js",
