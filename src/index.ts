@@ -23,9 +23,7 @@ export function getComptimeContext(): ComptimeContext | undefined {
 function defer(fn: Defer) {
 	const context = getComptimeContext();
 	if (!context) throw new ComptimeError(COMPTIME_ERRORS.CT_ERR_NO_COMPTIME, "Invalid `comptime.defer()` call");
-	context.deferQueue.push(() => {
-		return asyncLocalStore.run({ __comptime_context: context }, fn);
-	});
+	context.deferQueue.push(() => asyncLocalStore.run({ __comptime_context: context }, fn));
 }
 
 /**
