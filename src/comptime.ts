@@ -2,20 +2,14 @@ import { w } from "w";
 
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { AsyncLocalStorage } from "node:async_hooks";
 import MagicString from "magic-string";
 import * as ts from "typescript";
 import { formatSourceError } from "./formatSourceError.ts";
 import { box, COMPTIME_ERRORS, ComptimeError, type ComptimeErrorKind } from "./errors.ts";
 import { format } from "node:util";
 import { getModuleResolver, type ModuleResolver } from "./resolve.ts";
+import { asyncLocalStore, type Defer } from "./async_store.ts";
 
-export interface ComptimeFunction {
-	name: string;
-	fn: (...args: unknown[]) => unknown;
-	start: number;
-	end: number;
-}
 export interface Replacement {
 	start: number;
 	end: number;
@@ -289,19 +283,6 @@ export function getTsConfig(opts?: GetComptimeReplacementsOpts): { configDir: st
 		return { configDir, tsConfig: ts.readConfigFile(config, ts.sys.readFile).config };
 	}
 }
-
-export type Defer = () => void | Promise<void>;
-
-export interface ComptimeContext {
-	sourceFile: string;
-	deferQueue: Defer[];
-	position: {
-		start: number;
-		end: number;
-	};
-}
-
-export const asyncLocalStore = new AsyncLocalStorage<{ __comptime_context?: ComptimeContext }>();
 
 const logs = {
 	evalContext: w("comptime:eval"),

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from "node:util";
-import { applyComptimeReplacements, comptimeCompiler } from "./index.ts";
+import { applyComptimeReplacements, comptimeCompiler } from "./api.ts";
 import { getTypeInfoReplacements } from "./typeInfo.ts";
 
 const args = parseArgs({
@@ -27,6 +27,7 @@ const args = parseArgs({
 		},
 	},
 });
+
 if (args.values.help) {
 	console.log("Usage: ts-comptime <options>");
 	console.log("Options:");
