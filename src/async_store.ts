@@ -18,7 +18,7 @@ let AsyncLocalStorage: new () => AsyncContext<{ __comptime_context: ComptimeCont
 
 try {
 	// avoid an unnecessary import if we're not in a node-like environment
-	if (typeof process === "undefined") throw new Error("process is undefined, using NoopAsyncLocalStorage");
+	if (typeof process === "undefined") throw new Error();
 	AsyncLocalStorage = await import("node:async_hooks").then(m => m.AsyncLocalStorage);
 } catch {
 	// if we're not in a node-like environment, use a noop implementation, no need to error

@@ -1,14 +1,26 @@
-import boxen, { type Options } from "boxen";
+import type { Options } from "boxen";
+
+let boxen: typeof import("boxen")["default"] | undefined;
+
+try {
+	if (typeof process === "undefined") throw new Error();
+	boxen = (await import("boxen")).default;
+} catch {
+	boxen = undefined;
+}
+
+const NO_BOX = Boolean(process?.env.NO_BOX);
+
 export const box = (text: string, options?: Options, skip?: boolean) =>
-	skip
-		? text
-		: boxen(
+	boxen && !skip && !NO_BOX
+		? boxen(
 				text
 					.split("\n")
 					.map(l => " " + l + " ")
 					.join("\n"),
 				options,
-		  );
+		  )
+		: text;
 
 export const COMPTIME_ERRORS = {
 	CT_ERR_GET_EVALUATION: "CT_ERR_GET_EVALUATION",
