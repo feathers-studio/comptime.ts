@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { platform } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "path";
 
@@ -29,3 +30,7 @@ export function getModuleResolver(userResolver?: ModuleResolver): ModuleResolver
 		// to accept a parent parameter
 	};
 }
+
+export const formatPath = platform() === "win32"
+	? (path: string) => path.replaceAll("\\", "\\\\")
+	: (path: string) => path;

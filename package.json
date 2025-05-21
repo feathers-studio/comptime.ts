@@ -16,7 +16,7 @@
 	"scripts": {
 		"test": "bun test tests/comptime.test.ts",
 		"check": "tsc --noEmit",
-		"prepare": "tsc && ./docs/build.sh"
+		"prepare": "tsc && bun run ./docs/build.ts"
 	},
 	"files": [
 		"lib"

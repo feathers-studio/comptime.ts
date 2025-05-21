@@ -1,8 +1,9 @@
-import { tmpdir } from "node:os";
+import { platform, tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { mkdir, readFile, writeFile, rm } from "fs/promises";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { comptimeCompiler } from "../src/api.ts";
+import { formatPath } from "../src/resolve.ts";
 
 const randId = () => Math.random().toString(36).substring(2, 15);
 
@@ -34,10 +35,11 @@ describe("comptime", () => {
 			`,
 		);
 
-		await file("node_modules/comptime.ts/index.js", `export * from "${join(dir, "src/index.ts")}";`);
+		await file("node_modules/comptime.ts/index.js", `export * from "${formatPath(join(dir, "src/index.ts"))}";`);
 	});
 
 	afterEach(async () => {
+		process.chdir(dir);
 		await rm(temp, { recursive: true });
 	});
 
@@ -637,7 +639,15 @@ describe("comptime", () => {
 		await getCompiled();
 		const foo = await readFile(join(dirname(fooname), "foo.txt"), "utf-8");
 		const bar = await readFile(join(dirname(fooname), "bar.txt"), "utf-8");
-		expect(foo).toEqual(fooname);
-		expect(bar).toEqual(barname);
+		if (platform() === 'win32') {
+			// TODO(Thomas): Investigate this inconsistency:
+			// contex.sourceFile (TypeScript?) gives paths of the form C:/Users/...
+			// but everything else uses C:\Users\...
+			expect(foo.replaceAll('/', '\\')).toEqual(fooname);
+			expect(bar.replaceAll('/', '\\')).toEqual(barname);
+		} else {
+			expect(foo).toEqual(fooname);
+			expect(bar).toEqual(barname);
+		}
 	});
 });

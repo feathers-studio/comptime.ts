@@ -7,7 +7,7 @@ import * as ts from "typescript";
 import { formatSourceError } from "./formatSourceError.ts";
 import { box, COMPTIME_ERRORS, ComptimeError, type ComptimeErrorKind } from "./errors.ts";
 import { format } from "node:util";
-import { getModuleResolver, type ModuleResolver } from "./resolve.ts";
+import { formatPath, getModuleResolver, type ModuleResolver } from "./resolve.ts";
 import { asyncLocalStore, type Defer } from "./async_store.ts";
 
 export interface Replacement {
@@ -159,19 +159,20 @@ const getImportLine = async (
 	const importer = decl.getSourceFile().fileName;
 	const importPath = await resolver(specifier, importer);
 	if (!importPath) throw new Error("Could not resolve module: " + specifier + " from " + importer);
+	const formattedImportPath = formatPath(importPath);
 
 	if (ts.isImportSpecifier(imp)) {
 		// Named import: import { foo } from ... or import { foo as bar } from ...
 		const imported = imp.propertyName ? imp.propertyName.getText() : imp.name.getText();
 		const local = imp.name.getText();
 		const binding = imported === local ? local : `${imported}: ${local}`;
-		return `const { ${binding} } = await import("${importPath}");`;
+		return `const { ${binding} } = await import("${formattedImportPath}");`;
 	} else if (ts.isNamespaceImport(imp)) {
 		// Namespace import: import * as foo from ...
-		return `const ${imp.name.getText()} = await import("${importPath}");`;
+		return `const ${imp.name.getText()} = await import("${formattedImportPath}");`;
 	} else if (ts.isImportClause(imp) && imp.name) {
 		// Default import: import foo from ...
-		return `const { default: ${imp.name.getText()} } = await import("${importPath}");`;
+		return `const { default: ${imp.name.getText()} } = await import("${formattedImportPath}");`;
 	}
 	throw new Error("Unsupported import type for comptime evaluation.");
 };
