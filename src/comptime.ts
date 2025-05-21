@@ -9,6 +9,7 @@ import { box, COMPTIME_ERRORS, ComptimeError, type ComptimeErrorKind } from "./e
 import { format } from "node:util";
 import { formatPath, getModuleResolver, type ModuleResolver } from "./resolve.ts";
 import { asyncLocalStore, type Defer } from "./async_store.ts";
+import { formatResolvedValue } from "./formatResolvedValue.ts";
 
 export interface Replacement {
 	start: number;
@@ -499,13 +500,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 					}
 
 					// TODO: if this node will become an unused statement, remove it entirely instead of replacing it
-					let result;
-					if (resolved === undefined) result = "undefined";
-					else if (Array.isArray(resolved)) result = JSON.stringify(resolved);
-					// prevent bare object becoming a statement and becoming invalid syntax
-					else if (typeof resolved === "object") result = "(" + JSON.stringify(resolved) + ")";
-					// fallback to JSON.stringify for other types
-					else result = JSON.stringify(resolved);
+					const result = formatResolvedValue(resolved);
 
 					replacements.push({
 						start: target.getStart(sourceFile),

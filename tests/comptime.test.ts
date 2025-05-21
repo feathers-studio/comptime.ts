@@ -650,4 +650,42 @@ describe("comptime", () => {
 			expect(bar).toEqual(barname);
 		}
 	});
+
+	it('should format emitted values correctly', async () => {
+		await file(
+			'value_emitter.ts',
+			`
+			export const a = null;
+			export const b = undefined;
+			export const c = true;
+			export const d = false;
+			export const e = 42;
+			export const f = Infinity;
+			export const g = -Infinity;
+			export const h = NaN;
+			export const i = 42n;
+			export const j = 'hello';
+			export const k = [1, true, null, undefined, 'hello', 42n];
+			export const l = new Date(0);
+			export const m = new Set();
+			m.add(42);
+			export const n = new Map();
+			n.set('foo', 'bar');
+			export const o = new Uint8Array([1,2,3]);
+			export const p = { foo: 'bar', baz: 42n };
+		`,
+		);
+		await file('importer.ts',
+			`
+			import * as mod from './value_emitter.ts' with { type: 'comptime' };
+			export const obj = mod;
+		`,
+		)
+		const expected = `
+			
+			export const obj = ({"a": null, "b": undefined, "c": true, "d": false, "e": 42, "f": Infinity, "g": -Infinity, "h": NaN, "i": 42n, "j": "hello", "k": [1, true, null, undefined, "hello", 42n], "l": new Date(0), "m": new Set([42]), "n": new Map([["foo", "bar"]]), "o": new Uint8Array([1, 2, 3]), "p": ({"foo": "bar", "baz": 42n})});
+		`;
+		const result = await getCompiled('importer.ts');
+		expect(result).toEqual(expected);
+		});
 });
