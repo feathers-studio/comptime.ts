@@ -26,7 +26,8 @@ export function formatResolvedValue(resolved: unknown): string {
 	if (resolved instanceof Uint16Array) return "new Uint16Array([" + [...resolved.values()].join(", ") + "])";
 	if (resolved instanceof Int32Array) return "new Int32Array([" + [...resolved.values()].join(", ") + "])";
 	if (resolved instanceof Uint32Array) return "new Uint32Array([" + [...resolved.values()].join(", ") + "])";
-	if (resolved instanceof Float16Array) return "new Float16Array([" + [...resolved.values()].join(", ") + "])";
+	// TODO(mkr): uncomment when Float16Array is more widely supported
+	// if (resolved instanceof Float16Array) return "new Float16Array([" + [...resolved.values()].join(", ") + "])";
 	if (resolved instanceof Float32Array) return "new Float32Array([" + [...resolved.values()].join(", ") + "])";
 	if (resolved instanceof Float64Array) return "new Float64Array([" + [...resolved.values()].join(", ") + "])";
 	if (resolved instanceof BigInt64Array)
@@ -42,6 +43,7 @@ export function formatResolvedValue(resolved: unknown): string {
 				.join(", ") +
 			"})"
 		);
-	// fallback to JSON.stringify for other types
-	return "(" + JSON.stringify(resolved) + ")";
+	if (typeof resolved === "function") return resolved.toString();
+	if (typeof resolved === "symbol") throw new Error("Cannot emit symbol values at comptime");
+	throw new Error(`Cannot emit value at comptime: ${resolved}`);
 }
