@@ -1,11 +1,12 @@
 import { createRequire } from "node:module";
-import { platform } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "path";
 
 type MaybePromise<T> = T | Promise<T>;
 
 export type ModuleResolver = (specifier: string, importer: string) => MaybePromise<string | null | undefined>;
+
+export const formatPath = (path: string) => path.replaceAll("\\", "\\\\");
 
 export function getModuleResolver(userResolver?: ModuleResolver): ModuleResolver {
 	const require = createRequire(fileURLToPath(import.meta.url));
@@ -30,6 +31,3 @@ export function getModuleResolver(userResolver?: ModuleResolver): ModuleResolver
 		// to accept a parent parameter
 	};
 }
-
-export const formatPath =
-	platform() === "win32" ? (path: string) => path.replaceAll("\\", "\\\\") : (path: string) => path;
