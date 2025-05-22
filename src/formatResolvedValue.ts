@@ -34,6 +34,7 @@ export function formatResolvedValue(resolved: unknown): string {
 		return "new BigInt64Array([" + [...resolved.values()].map(formatResolvedValue).join(", ") + "])";
 	if (resolved instanceof BigUint64Array)
 		return "new BigUint64Array([" + [...resolved.values()].map(formatResolvedValue).join(", ") + "])";
+	if (resolved instanceof RegExp) return resolved.toString();
 	// prevent bare object becoming a statement and becoming invalid syntax
 	if (t === "object")
 		return (
