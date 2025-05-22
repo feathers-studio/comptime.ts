@@ -1,7 +1,7 @@
 export function formatResolvedValue(resolved: unknown): string {
 	if (resolved === null) return "null";
-	if (resolved === undefined) return "undefined";
 	const t = typeof resolved;
+	if (resolved === undefined || t === 'undefined') return "undefined";
 	if (t === 'boolean') return resolved ? "true" : "false";
 	if (t === 'number') return String(resolved);
 	if (t === 'bigint') return String(resolved) + 'n';
@@ -18,13 +18,16 @@ export function formatResolvedValue(resolved: unknown): string {
 	if (resolved instanceof Uint16Array) return 'new Uint16Array([' + [...resolved.values()].join(', ') + '])';
 	if (resolved instanceof Int32Array) return 'new Int32Array([' + [...resolved.values()].join(', ') + '])';
 	if (resolved instanceof Uint32Array) return 'new Uint32Array([' + [...resolved.values()].join(', ') + '])';
-	if (resolved instanceof Float16Array) return 'new Float16Array([' + [...resolved.values()].join(', ') + '])';
+	// TODO: Enable Float16Array once it sees more adoption
+	// if (resolved instanceof Float16Array) return 'new Float16Array([' + [...resolved.values()].join(', ') + '])';
 	if (resolved instanceof Float32Array) return 'new Float32Array([' + [...resolved.values()].join(', ') + '])';
 	if (resolved instanceof Float64Array) return 'new Float64Array([' + [...resolved.values()].join(', ') + '])';
 	if (resolved instanceof BigInt64Array) return 'new BigInt64Array([' + [...resolved.values()].map(formatResolvedValue).join(', ') + '])';
 	if (resolved instanceof BigUint64Array) return 'new BigUint64Array([' + [...resolved.values()].map(formatResolvedValue).join(', ') + '])';
 	// prevent bare object becoming a statement and becoming invalid syntax
-	if (typeof resolved === "object") return '({' + Object.entries(resolved).map(([k,v]) => formatResolvedValue(k) + ': ' + formatResolvedValue(v)).join(', ') + '})';
+	if (t === "object") return '({' + Object.entries(resolved).map(([k,v]) => formatResolvedValue(k) + ': ' + formatResolvedValue(v)).join(', ') + '})';
+	if (t === 'function') return String(resolved); // pray that it isn't a closure
+	if (t === 'symbol') throw new Error('Emitting symbols will have unexpected consequences');
 	// fallback to JSON.stringify for other types
 	return '(' + JSON.stringify(resolved) + ')';
 }
