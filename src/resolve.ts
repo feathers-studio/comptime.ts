@@ -31,6 +31,5 @@ export function getModuleResolver(userResolver?: ModuleResolver): ModuleResolver
 	};
 }
 
-export const formatPath = platform() === "win32"
-	? (path: string) => path.replaceAll("\\", "\\\\")
-	: (path: string) => path;
+export const formatPath =
+	platform() === "win32" ? (path: string) => path.replaceAll("\\", "\\\\") : (path: string) => path;

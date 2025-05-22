@@ -34,9 +34,7 @@ export function assertNoSyntaxErrors(tsCode: string) {
 	const fileName = "eval.ts";
 	const host = ts.createCompilerHost(evalBlockTsConfig.compilerOptions);
 	host.getSourceFile = (fileName_, languageVersion) =>
-		fileName_ === fileName
-			? ts.createSourceFile(fileName, tsCode, languageVersion, true, ts.ScriptKind.TS)
-			: undefined;
+		fileName_ === fileName ? ts.createSourceFile(fileName, tsCode, languageVersion, true, ts.ScriptKind.TS) : undefined;
 
 	const program = ts.createProgram([fileName], evalBlockTsConfig.compilerOptions, host);
 	const diagnostics = program.getSyntacticDiagnostics();
@@ -257,7 +255,10 @@ export type Filterable<T> = T & { filter?: (id: string) => boolean };
 
 export type GetComptimeReplacementsOpts = ConfigByConfig | ConfigByPath | ConfigByImplicitConfig;
 
-export function getTsConfig(opts?: GetComptimeReplacementsOpts): { configDir: string; tsConfig: ts.CompilerOptions } {
+export function getTsConfig(opts?: GetComptimeReplacementsOpts): {
+	configDir: string;
+	tsConfig: ts.CompilerOptions;
+} {
 	if (opts?.tsconfig) {
 		// explicitly passed tsconfig and rootDir
 
@@ -282,7 +283,10 @@ export function getTsConfig(opts?: GetComptimeReplacementsOpts): { configDir: st
 		const configDir = path.resolve(".");
 		const config = ts.findConfigFile(configDir, ts.sys.fileExists, "tsconfig.json");
 		if (!config) throw new Error("Could not locate tsconfig.json in " + configDir);
-		return { configDir, tsConfig: ts.readConfigFile(config, ts.sys.readFile).config };
+		return {
+			configDir,
+			tsConfig: ts.readConfigFile(config, ts.sys.readFile).config,
+		};
 	}
 }
 
@@ -312,18 +316,14 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 				if (isNodeModules(resolved)) return [resolved, []];
 				if (filter && !filter(resolved)) return [resolved, []];
 
-				const comptimeImports = query<ts.ImportDeclaration>(
-					sourceFile,
-					ts.SyntaxKind.ImportDeclaration,
-					each => {
-						const elements = each.attributes?.elements;
-						if (!elements) return false;
+				const comptimeImports = query<ts.ImportDeclaration>(sourceFile, ts.SyntaxKind.ImportDeclaration, each => {
+					const elements = each.attributes?.elements;
+					if (!elements) return false;
 
-						const comptime = elements.some(elem => elem.value.getText().slice(1, -1) === "comptime");
+					const comptime = elements.some(elem => elem.value.getText().slice(1, -1) === "comptime");
 
-						return comptime;
-					},
-				);
+					return comptime;
+				});
 
 				const comptimeConsumers = query<ts.Identifier>(sourceFile, ts.SyntaxKind.Identifier, each => {
 					const parent = each.parent;
@@ -340,23 +340,17 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 						if (ts.isImportSpecifier(decl)) {
 							// Named import: import { foo } from ...
 							return comptimeImports.some(importDecl =>
-								query<ts.ImportSpecifier>(importDecl, ts.SyntaxKind.ImportSpecifier).some(
-									spec => spec === decl,
-								),
+								query<ts.ImportSpecifier>(importDecl, ts.SyntaxKind.ImportSpecifier).some(spec => spec === decl),
 							);
 						} else if (ts.isNamespaceImport(decl)) {
 							// Namespace import: import * as foo from ...
 							return comptimeImports.some(importDecl =>
-								query<ts.NamespaceImport>(importDecl, ts.SyntaxKind.NamespaceImport).some(
-									ns => ns === decl,
-								),
+								query<ts.NamespaceImport>(importDecl, ts.SyntaxKind.NamespaceImport).some(ns => ns === decl),
 							);
 						} else if (ts.isImportClause(decl) && decl.name) {
 							// Default import: import foo from ...
 							return comptimeImports.some(importDecl =>
-								query<ts.ImportClause>(importDecl, ts.SyntaxKind.ImportClause).some(
-									clause => clause === decl,
-								),
+								query<ts.ImportClause>(importDecl, ts.SyntaxKind.ImportClause).some(clause => clause === decl),
 							);
 						}
 						return false;
@@ -399,7 +393,11 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 				});
 
 				const sortedTargets = targetExpressions
-					.map(node => ({ node, start: node.getStart(sourceFile), end: node.getEnd() }))
+					.map(node => ({
+						node,
+						start: node.getStart(sourceFile),
+						end: node.getEnd(),
+					}))
 					.sort((a, b) => a.start - b.start);
 
 				/*
@@ -475,11 +473,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 							logs.evalContext(
 								"\n\n" +
 									box(
-										[
-											box(transpiled),
-											"-- with comptime context: " + format(context),
-											"From: " + marker,
-										].join("\n\n"),
+										[box(transpiled), "-- with comptime context: " + format(context), "From: " + marker].join("\n\n"),
 										{
 											title: "evaluation block",
 										},

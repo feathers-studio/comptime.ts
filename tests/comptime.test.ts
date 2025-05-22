@@ -639,21 +639,21 @@ describe("comptime", () => {
 		await getCompiled();
 		const foo = await readFile(join(dirname(fooname), "foo.txt"), "utf-8");
 		const bar = await readFile(join(dirname(fooname), "bar.txt"), "utf-8");
-		if (platform() === 'win32') {
+		if (platform() === "win32") {
 			// TODO(Thomas): Investigate this inconsistency:
-			// contex.sourceFile (TypeScript?) gives paths of the form C:/Users/...
+			// context.sourceFile (TypeScript?) gives paths of the form C:/Users/...
 			// but everything else uses C:\Users\...
-			expect(foo.replaceAll('/', '\\')).toEqual(fooname);
-			expect(bar.replaceAll('/', '\\')).toEqual(barname);
+			expect(foo.replaceAll("/", "\\")).toEqual(fooname);
+			expect(bar.replaceAll("/", "\\")).toEqual(barname);
 		} else {
 			expect(foo).toEqual(fooname);
 			expect(bar).toEqual(barname);
 		}
 	});
 
-	it('should format emitted values correctly', async () => {
+	it("should format emitted values correctly", async () => {
 		await file(
-			'value_emitter.ts',
+			"value_emitter.ts",
 			`
 			export const a = null;
 			export const b = undefined;
@@ -675,17 +675,18 @@ describe("comptime", () => {
 			export const p = { foo: 'bar', baz: 42n };
 		`,
 		);
-		await file('importer.ts',
+		await file(
+			"importer.ts",
 			`
 			import * as mod from './value_emitter.ts' with { type: 'comptime' };
 			export const obj = mod;
 		`,
-		)
+		);
 		const expected = `
 			
 			export const obj = ({"a": null, "b": undefined, "c": true, "d": false, "e": 42, "f": Infinity, "g": -Infinity, "h": NaN, "i": 42n, "j": "hello", "k": [1, true, null, undefined, "hello", 42n], "l": new Date(0), "m": new Set([42]), "n": new Map([["foo", "bar"]]), "o": new Uint8Array([1, 2, 3]), "p": ({"foo": "bar", "baz": 42n})});
 		`;
-		const result = await getCompiled('importer.ts');
+		const result = await getCompiled("importer.ts");
 		expect(result).toEqual(expected);
-		});
+	});
 });
