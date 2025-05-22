@@ -6,6 +6,8 @@ type MaybePromise<T> = T | Promise<T>;
 
 export type ModuleResolver = (specifier: string, importer: string) => MaybePromise<string | null | undefined>;
 
+export const formatPath = (path: string) => path.replaceAll("\\", "\\\\");
+
 export function getModuleResolver(userResolver?: ModuleResolver): ModuleResolver {
 	const require = createRequire(fileURLToPath(import.meta.url));
 
