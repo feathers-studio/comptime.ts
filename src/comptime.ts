@@ -138,8 +138,10 @@ function recursivelyGetIdentifierDeclarations(
 
 			const nested = query<ts.Identifier>(enclosingStatement, ts.SyntaxKind.Identifier, idn => {
 				const parent = idn.parent;
-				// filter identifiers that are right hand side of a property access expression
-				return parent && ts.isPropertyAccessExpression(parent) && parent.name === idn;
+				// filter out identifiers that are right hand side of a property access expression
+				// for example, given the PropertyAccessExpression `foo.bar`, we don't want to select `bar`
+				if (ts.isPropertyAccessExpression(parent) && parent.name === idn) return false;
+				return true;
 			});
 
 			return nested

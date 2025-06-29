@@ -594,6 +594,30 @@ describe("comptime", () => {
 		return expect(result).toEqual(expected);
 	});
 
+	it("should resolve identifiers inside accessed functions", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			const x = 2;
+			function foo(y: number) {
+				return x + y;
+			}
+			console.log(comptime(foo(1)));
+		`,
+		);
+
+		const result = await getCompiled("foo.ts");
+		const expected = `
+			
+			const x = 2;
+			function foo(y: number) {
+				return x + y;
+			}
+			console.log(3);
+		`;
+		return expect(result).toEqual(expected);
+	});
 	it("should defer functions to be executed after comptime evaluation", async () => {
 		const fooname = await file(
 			"foo.ts",
