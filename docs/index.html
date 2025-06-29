@@ -325,14 +325,14 @@ const x = sum(++a, 2);
 ++a;
 const y = sum(++a, 2);
 </code></pre>
-<p> Compiles to:</p>
+<p>Compiles to:</p>
 <pre><code class="language-typescript">let a = 1; // not a comptime var
 
 const x = 4;
 ++a; // untouched
 const y = 4; // same as previous line because it was evaluated independently
 </code></pre>
-<p> However, if we move the mutable state to another file, mutations are reflected between evaluations.</p>
+<p>However, if we move the mutable state to another file, mutations are reflected between evaluations.</p>
 <pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
 
 // export const state = { a: 1 };
@@ -342,7 +342,7 @@ const x = sum(++state.a, 2);
 ++state.a;
 const y = sum(state.a, 2);
 </code></pre>
-<p> Compiles to:</p>
+<p>Compiles to:</p>
 <pre><code class="language-typescript">const x = 4;
 3; // because of the ++a in previous line
 const y = 5;

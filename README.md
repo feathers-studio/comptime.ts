@@ -26,27 +26,27 @@ This is useful for optimising your code by moving computations from runtime to c
 
 ## Contents
 
--   [What is comptime.ts?](#what-is-comptimets)
--   [Examples](#examples)
-    -   [1. Simple sum function](#1-simple-sum-function)
-    -   [2. Turn emotion CSS into a zero-runtime CSS library](#2-turn-emotion-css-into-a-zero-runtime-css-library)
-    -   [3. Calculate constants at compile time](#3-calculate-constants-at-compile-time)
--   [Installation](#installation)
--   [Usage](#usage)
-    -   [With Vite](#with-vite)
-    -   [With Bun bundler](#with-bun-bundler)
-    -   [Command Line Interface](#command-line-interface)
-    -   [Via API](#via-api)
--   [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises)
-    -   [Resolving promises](#resolving-promises)
-    -   [Opting out of comptime virality](#opting-out-of-comptime-virality)
--   [Running code after comptime evaluation](#running-code-after-comptime-evaluation)
--   [How it works](#how-it-works)
--   [Limitations](#limitations)
--   [Best practices](#best-practices)
--   [Troubleshooting](#troubleshooting)
--   [Supporting the project](#supporting-the-project)
--   [License](#license)
+- [What is comptime.ts?](#what-is-comptimets)
+- [Examples](#examples)
+  - [1. Simple sum function](#1-simple-sum-function)
+  - [2. Turn emotion CSS into a zero-runtime CSS library](#2-turn-emotion-css-into-a-zero-runtime-css-library)
+  - [3. Calculate constants at compile time](#3-calculate-constants-at-compile-time)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [With Vite](#with-vite)
+  - [With Bun bundler](#with-bun-bundler)
+  - [Command Line Interface](#command-line-interface)
+  - [Via API](#via-api)
+- [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises)
+  - [Resolving promises](#resolving-promises)
+  - [Opting out of comptime virality](#opting-out-of-comptime-virality)
+- [Running code after comptime evaluation](#running-code-after-comptime-evaluation)
+- [How it works](#how-it-works)
+- [Limitations](#limitations)
+- [Best practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Supporting the project](#supporting-the-project)
+- [License](#license)
 
 ## What is comptime.ts?
 
@@ -317,20 +317,20 @@ if multiple deferred functions exist, they are not guaranteed to be executed in 
 
 ## Limitations
 
--   Only JSON-serialisable values can be returned from comptime expressions.
--   The evaluation block is isolated, so multiple comptime expressions in the same file will be evaluated independently and may load variables from the parent scope independently, as if they were repeated per-expression.
--   Complex expressions might increase build time significantly.
+- Only JSON-serialisable values can be returned from comptime expressions.
+- The evaluation block is isolated, so multiple comptime expressions in the same file will be evaluated independently and may load variables from the parent scope independently, as if they were repeated per-expression.
+- Complex expressions might increase build time significantly.
 
 ## Best Practices
 
--   Use comptime for:
-    -   Computing constant values
-    -   Generating static content
-    -   Optimising performance-critical code
--   Avoid using comptime for:
-    -   Complex runtime logic
-    -   Side effects
-    -   Non-deterministic operations (unless you understand the implications)
+- Use comptime for:
+  - Computing constant values
+  - Generating static content
+  - Optimising performance-critical code
+- Avoid using comptime for:
+  - Complex runtime logic
+  - Side effects
+  - Non-deterministic operations (unless you understand the implications)
 
 ## Troubleshooting
 
@@ -346,70 +346,70 @@ The following are some non-error issues that you might encounter:
 
 1. **Redundant code not removed**
 
-    - `comptime.ts` removes imports marked with `type: "comptime"` and replaces comptime expressions.
-    - However, it does not remove other redundant code that might be left behind after compilation.
-    - Use other tooling (like Vite) to handle such cleanup after the fact.
-    - `comptime.ts` is available as a standalone CLI, JavaScript API and Vite plugin. If you'd like `comptime.ts` to integrate with other tooling, please let us know via an issue or raise a PR!
+   - `comptime.ts` removes imports marked with `type: "comptime"` and replaces comptime expressions.
+   - However, it does not remove other redundant code that might be left behind after compilation.
+   - Use other tooling (like Vite) to handle such cleanup after the fact.
+   - `comptime.ts` is available as a standalone CLI, JavaScript API and Vite plugin. If you'd like `comptime.ts` to integrate with other tooling, please let us know via an issue or raise a PR!
 
 1. **Compilation result is unexpected**
 
-    - Notice that variables in the caller's scope that are not comptime (imported with the "comptime" attribute) are not guaranteed to be stable.
-    - `comptime.ts` will extract their declarations, but it will not account for mutations.
-    - If multiple comptime expressions exist in the same file, all dependent statements will be extracted and evaluated for _each_ expression. This may cause the same declarations to be evaluated multiple times, and mutations are not reflected between evaluations.
-    - If you want a mutable comptime variable, declare it in another file and import it with the "comptime" attribute.
+   - Notice that variables in the caller's scope that are not comptime (imported with the "comptime" attribute) are not guaranteed to be stable.
+   - `comptime.ts` will extract their declarations, but it will not account for mutations.
+   - If multiple comptime expressions exist in the same file, all dependent statements will be extracted and evaluated for _each_ expression. This may cause the same declarations to be evaluated multiple times, and mutations are not reflected between evaluations.
+   - If you want a mutable comptime variable, declare it in another file and import it with the "comptime" attribute.
 
-    ```typescript
-    import { sum } from "./sum.ts" with { type: "comptime" };
+   ```typescript
+   import { sum } from "./sum.ts" with { type: "comptime" };
 
-    let a = 1;
+   let a = 1;
 
-    const x = sum(++a, 2);
-    ++a;
-    const y = sum(++a, 2);
-    ```
+   const x = sum(++a, 2);
+   ++a;
+   const y = sum(++a, 2);
+   ```
 
-    Compiles to:
+   Compiles to:
 
-    ```typescript
-    let a = 1; // not a comptime var
+   ```typescript
+   let a = 1; // not a comptime var
 
-    const x = 4;
-    ++a; // untouched
-    const y = 4; // same as previous line because it was evaluated independently
-    ```
+   const x = 4;
+   ++a; // untouched
+   const y = 4; // same as previous line because it was evaluated independently
+   ```
 
-    However, if we move the mutable state to another file, mutations are reflected between evaluations.
+   However, if we move the mutable state to another file, mutations are reflected between evaluations.
 
-    ```typescript
-    import { sum } from "./sum.ts" with { type: "comptime" };
+   ```typescript
+   import { sum } from "./sum.ts" with { type: "comptime" };
 
-    // export const state = { a: 1 };
-    import { state } from "./state.ts" with { type: "comptime" };
+   // export const state = { a: 1 };
+   import { state } from "./state.ts" with { type: "comptime" };
 
-    const x = sum(++state.a, 2);
-    ++state.a;
-    const y = sum(state.a, 2);
-    ```
+   const x = sum(++state.a, 2);
+   ++state.a;
+   const y = sum(state.a, 2);
+   ```
 
-    Compiles to:
+   Compiles to:
 
-    ```typescript
-    const x = 4;
-    3; // because of the ++a in previous line
-    const y = 5;
-    ```
+   ```typescript
+   const x = 4;
+   3; // because of the ++a in previous line
+   const y = 5;
+   ```
 
 1. **My comptime expression was not replaced**
 
-    - Check that the import has `{ type: "comptime" }`.
-    - Ensure the expression is JSON-serialisable.
-    - Verify all dependencies are available at compile time.
+   - Check that the import has `{ type: "comptime" }`.
+   - Ensure the expression is JSON-serialisable.
+   - Verify all dependencies are available at compile time.
 
 1. **Build time too slow**
 
-    - Consider moving complex computations to runtime.
-    - Break down large expressions into smaller ones.
-    - Pass `include`/`exclude` options to limit scope.
+   - Consider moving complex computations to runtime.
+   - Break down large expressions into smaller ones.
+   - Pass `include`/`exclude` options to limit scope.
 
 ## Supporting the project
 
@@ -417,8 +417,8 @@ A lot of time and effort goes into maintaining projects like this.
 
 If you'd like to support the project, please consider:
 
--   [Star and share the project with others](https://github.com/feathers-studio/comptime.ts)
--   Sponsor the project ([GitHub Sponsors](https://github.com/sponsors/MKRhere) / [Patreon](https://patreon.com/MKRhere) / [Ko-fi](https://ko-fi.com/MKRhere))
+- [Star and share the project with others](https://github.com/feathers-studio/comptime.ts)
+- Sponsor the project ([GitHub Sponsors](https://github.com/sponsors/MKRhere) / [Patreon](https://patreon.com/MKRhere) / [Ko-fi](https://ko-fi.com/MKRhere))
 
 ## License
 

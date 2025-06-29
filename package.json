@@ -11,7 +11,7 @@
 		"./bun": "./lib/bun.js"
 	},
 	"bin": {
-		"comptime.ts": "./lib/bin.js"
+		"comptime": "./lib/bin.js"
 	},
 	"scripts": {
 		"test": "bun test tests/comptime.test.ts",
