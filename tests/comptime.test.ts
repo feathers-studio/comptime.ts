@@ -1,7 +1,7 @@
 import { platform, tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { mkdir, readFile, writeFile, rm } from "fs/promises";
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, afterAll } from "bun:test";
 import { comptimeCompiler } from "../src/api.ts";
 import { formatPath } from "../src/resolve.ts";
 
@@ -10,10 +10,11 @@ const randId = () => Math.random().toString(36).substring(2, 15);
 const dir = join(__dirname, "..");
 
 describe("comptime", () => {
+	const tempRoot = join(tmpdir(), "comptime-test");
 	let temp: string;
 
 	beforeEach(async () => {
-		temp = join(tmpdir(), "comptime-test", randId());
+		temp = join(tempRoot, randId());
 		await mkdir(temp, { recursive: true });
 		process.chdir(temp);
 
@@ -38,10 +39,7 @@ describe("comptime", () => {
 		await file("node_modules/comptime.ts/index.js", `export * from "${formatPath(join(dir, "src/index.ts"))}";`);
 	});
 
-	afterEach(async () => {
-		process.chdir(dir);
-		await rm(temp, { recursive: true });
-	});
+	afterAll(async () => await rm(tempRoot, { recursive: true }));
 
 	const file = async (name: string, content: string) => {
 		const path = join(temp, name);
