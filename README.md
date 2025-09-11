@@ -104,7 +104,7 @@ Compiles to:
 const HOUR = 3600000;
 ```
 
-Apart from function calls and tagged template literals, all sorts of expressions are supported (even complex ones like index access and simple ones like imported constants). The only limitation is that the resultant value must be serialisable to JSON.
+Apart from function calls and tagged template literals, all sorts of expressions are supported (even more complex cases like index access and imported constants). The only limitation is that the resultant value must be serialisable [(see serialisation)](./SERIALISATION.md).
 
 > **Note**: The import statements marked with `type: "comptime"` are removed in the output. We assume you have other tooling (like Vite) to handle other unused redundant statements left behind after comptime evaluation.
 
@@ -402,7 +402,7 @@ The following are some non-error issues that you might encounter:
 1. **My comptime expression was not replaced**
 
    - Check that the import has `{ type: "comptime" }`.
-   - Ensure the expression is JSON-serialisable.
+   - Ensure the expression is serialisable [(see serialisation)](./SERIALISATION.md).
    - Verify all dependencies are available at compile time.
 
 1. **Build time too slow**
