@@ -7,41 +7,23 @@ out: docs/serialisation.html
 
 # Serialisation
 
-([back to home](../))
-
 comptime.ts supports serialisation of various JavaScript values during compile-time evaluation. This document details which types can be safely serialised and their specific behaviors.
 
-## Supported Types
+```typescript
+const number = comptime(5);
+const set = comptime(new Set([1, 2, 3]));
+const debug = comptime(process.env.DEBUG ? (x: string) => console.log(x) : () => {});
+```
 
-### Primitives
+Compiles to:
 
-- Numbers
-- Strings
-- Booleans
-- Null
-- Undefined
-- BigInt
+```typescript
+const number = 5;
+const set = new Set([1, 2, 3]);
+const debug = x => console.log(x);
+```
 
-### Collections
-
-- Arrays
-- Sets
-- Maps
-- TypedArrays (Uint8Array, Int32Array, etc.)
-
-### Objects
-
-- Plain objects (non-cyclic)
-- Class instances (serialised as plain objects)
-- Dates
-- Regular Expressions
-- Functions
-
-### Special
-
-- Promises (automatically awaited)
-
-## Detailed Type Reference
+## Supported Types Reference
 
 | Type               | Supported | Example                                                       | Output                                                        | Notes                                                        |
 | ------------------ | --------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -110,7 +92,7 @@ Compiles to (assuming `process.env.DEBUG` is `true`):
 
 <!-- prettier-ignore -->
 ```typescript
-const debug = (x)=>console.log(x);
+const debug = (x) => console.log(x);
 
 debug("Initialising app...");
 ```

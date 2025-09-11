@@ -7,8 +7,6 @@ out: docs/errors.html
 
 # Errors
 
-([back to home](../))
-
 Errors happen while writing code. And it can be hard to diagnose comptime evaluations, since you don't see the constructed code block that's being executed for each expression. `comptime.ts` attempts to provide as much information as possible to help you debug and fix issues.
 
 ![Compile Error](/error.jpg)

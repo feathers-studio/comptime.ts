@@ -7,6 +7,7 @@ const writeP = (ws: WriteStream, chunk: any) =>
 
 const head = await readFile("docs/head.html", "utf8");
 const tail = await readFile("docs/tail.html", "utf8");
+const navbar = await readFile("docs/navbar.html", "utf8");
 
 const split = (text: string, delimiter: string) => {
 	const i = text.indexOf(delimiter);
@@ -58,7 +59,9 @@ async function render(source: string) {
 			.replaceAll("{{DESCRIPTION}}", description)
 			.replaceAll("{{FEATURED_IMAGE}}", featuredImage),
 	);
-	await writeP(index, "<body>\n<main>\n");
+	await writeP(index, "<body>\n");
+	await writeP(index, "<main>\n");
+	if (source !== "README.md") await writeP(index, navbar);
 	await writeP(index, html.replaceAll("ERRORS.md", "./errors").replaceAll("SERIALISATION.md", "./serialisation"));
 	await writeP(index, "</main>\n");
 	await writeP(index, tail);
