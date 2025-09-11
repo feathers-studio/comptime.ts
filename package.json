@@ -65,10 +65,10 @@
 	"devDependencies": {
 		"@types/bun": "latest",
 		"marked": "^15.0.11",
-		"vite": "^6"
+		"vite": "^7"
 	},
 	"peerDependencies": {
-		"vite": "^6"
+		"vite": "^6 || ^7"
 	},
 	"peerDependenciesMeta": {
 		"vite": {
