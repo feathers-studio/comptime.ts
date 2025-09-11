@@ -48,7 +48,10 @@ main {
 
 	& > * {
 		grid-column: 3;
+		margin: 0 !important;
 	}
+
+	row-gap: 2rem;
 
 	& > table {
 		grid-column-start: 2;
@@ -56,6 +59,7 @@ main {
 		overflow-x: auto;
 		min-width: 0;
 		margin-block: 1rem;
+		display: block;
 	}
 }
 
