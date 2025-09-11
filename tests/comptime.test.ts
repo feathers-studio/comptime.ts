@@ -13,7 +13,7 @@ describe("comptime", () => {
 	let temp: string;
 
 	beforeEach(async () => {
-		temp = join(tmpdir(), randId());
+		temp = join(tmpdir(), "comptime-test", randId());
 		await mkdir(temp, { recursive: true });
 		process.chdir(temp);
 
@@ -711,6 +711,50 @@ describe("comptime", () => {
 			export const obj = ({"a": null, "b": undefined, "c": true, "d": false, "e": 42, "f": Infinity, "g": -Infinity, "h": NaN, "i": 42n, "j": "hello", "k": [1, true, null, undefined, "hello", 42n], "l": new Date(0), "m": new Set([42]), "n": new Map([["foo", "bar"]]), "o": new Uint8Array([1, 2, 3]), "p": ({"foo": "bar", "baz": 42n})});
 		`;
 		const result = await getCompiled("importer.ts");
+		expect(result).toEqual(expected);
+	});
+
+	it("should serialise functions to their definition", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			const env = { DEBUG: "true" };
+			export const fn = comptime(env.DEBUG ? () => 1 + 2 : () => {});
+		`,
+		);
+		const expected = `
+			
+			const env = { DEBUG: "true" };
+			export const fn = () => 1 + 2;
+		`;
+		const result = await getCompiled("foo.ts");
+		expect(result).toEqual(expected);
+	});
+
+	it("should serialise classes to their definition", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			export const MyClass = comptime(class {
+				static x = 5;
+				constructor() {
+					this.foo = "bar";
+				}
+			});
+		`,
+		);
+		const expected = `
+			
+			export const MyClass = class {
+        static x = 5;
+        constructor() {
+            this.foo = "bar";
+        }
+    };
+		`;
+		const result = await getCompiled("foo.ts");
 		expect(result).toEqual(expected);
 	});
 });
