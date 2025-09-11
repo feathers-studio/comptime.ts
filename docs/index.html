@@ -4,9 +4,7 @@
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>comptime.ts — compile-time expressions for TypeScript</title>
-	<meta
-		name="description"
-		content="A simple-to-use compiler and Vite plugin to evaluate TypeScript expressions at build time." />
+	<meta name="description" content="A simple-to-use compiler, Vite, and Bun plugin to evaluate TypeScript expressions at compile time." />
 	<meta name="author" content="Muthu Kumar" />
 	<meta name="keywords" content="TypeScript, comptime, compiler, Vite, plugin, build, time, expression, evaluate" />
 
@@ -15,18 +13,14 @@
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://comptime.js.org" />
 	<meta property="og:title" content="comptime.ts — compile-time expressions for TypeScript" />
-	<meta
-		property="og:description"
-		content="A simple-to-use compiler and Vite plugin to evaluate TypeScript expressions at build time." />
+	<meta property="og:description" content="A simple-to-use compiler, Vite, and Bun plugin to evaluate TypeScript expressions at compile time." />
 	<meta property="og:image" content="https://comptime.js.org/comptime.ts.jpg" />
 
 	<!-- Twitter -->
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:url" content="https://comptime.js.org" />
 	<meta name="twitter:title" content="comptime.ts — compile-time expressions for TypeScript" />
-	<meta
-		name="twitter:description"
-		content="A simple-to-use compiler and Vite plugin to evaluate TypeScript expressions at build time." />
+	<meta name="twitter:description" content="A simple-to-use compiler, Vite, and Bun plugin to evaluate TypeScript expressions at compile time." />
 	<meta name="twitter:image" content="https://comptime.js.org/comptime.ts.jpg" />
 
 	<meta name="darkreader-lock" />
@@ -61,7 +55,11 @@
 <blockquote>
 <p><strong>Warning</strong>: You are responsible for ensuring that the expressions you mark with <code>comptime</code> are safe to evaluate at compile time. <code>comptime.ts</code> does not perform any isolation. However, comptime imports are only allowed in project files, and not in node_modules. You may however import from node_modules as comptime.</p>
 </blockquote>
-<h3><a href="././errors">↗️ Quick Error Reference</a></h3>
+<h2>Quick References</h2>
+<ul>
+<li><a href="././serialisation">↗️ Serialisation Reference</a></li>
+<li><a href="././errors">↗️ Error Reference</a></li>
+</ul>
 <h2>Contents</h2>
 <ul>
 <li><a href="#what-is-comptimets">What is comptime.ts?</a></li>
@@ -128,7 +126,7 @@ const HOUR = ms(&quot;1 hour&quot;);
 <p>Compiles to:</p>
 <pre><code class="language-typescript">const HOUR = 3600000;
 </code></pre>
-<p>Apart from function calls and tagged template literals, all sorts of expressions are supported (even complex ones like index access and simple ones like imported constants). The only limitation is that the resultant value must be serialisable to JSON.</p>
+<p>Apart from function calls and tagged template literals, all sorts of expressions are supported (even more complex cases like index access and imported constants). The only limitation is that the resultant value must be serialisable <a href="././serialisation">(see serialisation)</a>.</p>
 <blockquote>
 <p><strong>Note</strong>: The import statements marked with <code>type: &quot;comptime&quot;</code> are removed in the output. We assume you have other tooling (like Vite) to handle other unused redundant statements left behind after comptime evaluation.</p>
 </blockquote>
@@ -351,7 +349,7 @@ const y = 5;
 <li><p><strong>My comptime expression was not replaced</strong></p>
 <ul>
 <li>Check that the import has <code>{ type: &quot;comptime&quot; }</code>.</li>
-<li>Ensure the expression is JSON-serialisable.</li>
+<li>Ensure the expression is serialisable <a href="././serialisation">(see serialisation)</a>.</li>
 <li>Verify all dependencies are available at compile time.</li>
 </ul>
 </li>
@@ -372,7 +370,6 @@ const y = 5;
 </ul>
 <h2>License</h2>
 <p>MIT</p>
-
 </main>
 <script>
 	document.addEventListener("DOMContentLoaded", () => {

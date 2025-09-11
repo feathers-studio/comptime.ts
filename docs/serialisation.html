@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>comptime.ts | serialisation</title>
+	<meta name="description" content="Serialisation types supported by comptime.ts and their usage." />
+	<meta name="author" content="Muthu Kumar" />
+	<meta name="keywords" content="TypeScript, comptime, compiler, Vite, plugin, build, time, expression, evaluate" />
+
+	<link rel="icon" href="/favicon.ico" />
+
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://comptime.js.org" />
+	<meta property="og:title" content="comptime.ts | serialisation" />
+	<meta property="og:description" content="Serialisation types supported by comptime.ts and their usage." />
+	<meta property="og:image" content="https://comptime.js.org/comptime.ts.jpg" />
+
+	<!-- Twitter -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:url" content="https://comptime.js.org" />
+	<meta name="twitter:title" content="comptime.ts | serialisation" />
+	<meta name="twitter:description" content="Serialisation types supported by comptime.ts and their usage." />
+	<meta name="twitter:image" content="https://comptime.js.org/comptime.ts.jpg" />
+
+	<meta name="darkreader-lock" />
+	<meta name="theme-color" content="#7759ff" />
+
+	<link rel="preconnect" href="https://rsms.me/" />
+	<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+	<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<main>
+<nav>
+	<a href="/">⚡️ comptime.ts</a>
+	<a href="https://github.com/feathers-studio/comptime.ts" target="_blank">
+		<svg
+			height="32"
+			viewBox="0 0 24 24"
+			version="1.1"
+			width="32"
+			xmlns="http://www.w3.org/2000/svg"
+			fill="currentColor"
+		>
+			<path
+				d="M12 1C5.9225 1 1 5.9225 1 12C1 16.8675 4.14875 20.9787 8.52125 22.4362C9.07125 22.5325 9.2775 22.2025 9.2775 21.9137C9.2775 21.6525 9.26375 20.7862 9.26375 19.865C6.5 20.3737 5.785 19.1912 5.565 18.5725C5.44125 18.2562 4.905 17.28 4.4375 17.0187C4.0525 16.8125 3.5025 16.3037 4.42375 16.29C5.29 16.2762 5.90875 17.0875 6.115 17.4175C7.105 19.0812 8.68625 18.6137 9.31875 18.325C9.415 17.61 9.70375 17.1287 10.02 16.8537C7.5725 16.5787 5.015 15.63 5.015 11.4225C5.015 10.2262 5.44125 9.23625 6.1425 8.46625C6.0325 8.19125 5.6475 7.06375 6.2525 5.55125C6.2525 5.55125 7.17375 5.2625 9.2775 6.67875C10.1575 6.43125 11.0925 6.3075 12.0275 6.3075C12.9625 6.3075 13.8975 6.43125 14.7775 6.67875C16.8813 5.24875 17.8025 5.55125 17.8025 5.55125C18.4075 7.06375 18.0225 8.19125 17.9125 8.46625C18.6138 9.23625 19.04 10.2125 19.04 11.4225C19.04 15.6437 16.4688 16.5787 14.0213 16.8537C14.42 17.1975 14.7638 17.8575 14.7638 18.8887C14.7638 20.36 14.75 21.5425 14.75 21.9137C14.75 22.2025 14.9563 22.5462 15.5063 22.4362C19.8513 20.9787 23 16.8537 23 12C23 5.9225 18.0775 1 12 1Z"
+			></path>
+		</svg>
+	</a>
+</nav>
+<h1>Serialisation</h1>
+<p>comptime.ts supports serialisation of various JavaScript values during compile-time evaluation. This document details which types can be safely serialised and their specific behaviors.</p>
+<pre><code class="language-typescript">const number = comptime(5);
+const set = comptime(new Set([1, 2, 3]));
+const debug = comptime(process.env.DEBUG ? (x: string) =&gt; console.log(x) : () =&gt; {});
+</code></pre>
+<p>Compiles to:</p>
+<pre><code class="language-typescript">const number = 5;
+const set = new Set([1, 2, 3]);
+const debug = x =&gt; console.log(x);
+</code></pre>
+<h2>Supported Types Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Supported</th>
+<th>Example</th>
+<th>Output</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Number</td>
+<td>Yes</td>
+<td><code>5</code></td>
+<td><code>5</code></td>
+<td>All numeric types supported</td>
+</tr>
+<tr>
+<td>String</td>
+<td>Yes</td>
+<td><code>&quot;hello&quot;</code></td>
+<td><code>&quot;hello&quot;</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Boolean</td>
+<td>Yes</td>
+<td><code>true</code></td>
+<td><code>true</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Null</td>
+<td>Yes</td>
+<td><code>null</code></td>
+<td><code>null</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Undefined</td>
+<td>Yes</td>
+<td><code>undefined</code></td>
+<td><code>undefined</code></td>
+<td></td>
+</tr>
+<tr>
+<td>BigInt</td>
+<td>Yes</td>
+<td><code>5n</code></td>
+<td><code>5n</code></td>
+<td>Large integers supported</td>
+</tr>
+<tr>
+<td>Set</td>
+<td>Yes</td>
+<td><code>new Set([1, 2, 3])</code></td>
+<td><code>new Set([1, 2, 3])</code></td>
+<td>Preserves Set semantics</td>
+</tr>
+<tr>
+<td>Map</td>
+<td>Yes</td>
+<td><code>new Map([[&quot;foo&quot;, &quot;bar&quot;]])</code></td>
+<td><code>new Map([[&quot;foo&quot;, &quot;bar&quot;]])</code></td>
+<td>Preserves Map semantics</td>
+</tr>
+<tr>
+<td>Typed Array</td>
+<td>Yes</td>
+<td><code>new Uint8Array([1, 2, 3])</code></td>
+<td><code>new Uint8Array([1, 2, 3])</code></td>
+<td>All TypedArray variants supported</td>
+</tr>
+<tr>
+<td>Object</td>
+<td>Yes</td>
+<td><code>{ foo: &quot;bar&quot; }</code></td>
+<td><code>{ foo: &quot;bar&quot; }</code></td>
+<td>Must be non-cyclic</td>
+</tr>
+<tr>
+<td>Date</td>
+<td>Yes</td>
+<td><code>new Date(2025, 04, 22)</code></td>
+<td><code>new Date(1747852200000)</code></td>
+<td>Serialised as Unix timestamp in milliseconds</td>
+</tr>
+<tr>
+<td>Regular Expression</td>
+<td>Yes</td>
+<td><code>/foo/g</code>, <code>new RegExp(&quot;foo&quot;, &quot;g&quot;)</code></td>
+<td><code>/foo/g</code></td>
+<td>Preserved as RegExp literal</td>
+</tr>
+<tr>
+<td>Promise</td>
+<td>Yes</td>
+<td><code>Promise.resolve(&quot;hello&quot;)</code></td>
+<td><code>&quot;hello&quot;</code></td>
+<td>Automatically resolved</td>
+</tr>
+<tr>
+<td>Function</td>
+<td>Yes</td>
+<td><code>() =&gt; &quot;hello&quot;</code></td>
+<td><code>() =&gt; &quot;hello&quot;</code></td>
+<td>Closures must be handled carefully [1]</td>
+</tr>
+<tr>
+<td>Class Instance</td>
+<td>Yes</td>
+<td><code>new MyClass()</code></td>
+<td><code>{ foo: &quot;bar&quot; }</code></td>
+<td>Only enumerable own properties are preserved</td>
+</tr>
+<tr>
+<td>Class constructor</td>
+<td>Yes</td>
+<td><code>class { static x = 5; constructor() { this.foo = &quot;bar&quot;; } }</code></td>
+<td><code>class { static x = 5; constructor() { this.foo = &quot;bar&quot;; } }</code></td>
+<td>Closures must be handled carefully [1]</td>
+</tr>
+<tr>
+<td>Symbol</td>
+<td>No</td>
+<td><code>Symbol(&quot;foo&quot;)</code></td>
+<td>TypeError</td>
+<td>Symbol identity is not transferable from comptime to runtime</td>
+</tr>
+</tbody></table>
+<p>[1] See &quot;Function Serialisation&quot; section below</p>
+<h2>Promise Handling</h2>
+<p>Promises are automatically resolved during serialisation:</p>
+<pre><code class="language-typescript">// This:
+const result = comptime(Promise.resolve(42));
+
+// Becomes:
+const result = 42;
+</code></pre>
+<p>If your expression returns a promise, we recommend wrapping it in the <code>comptime</code> function to provide the correct types.</p>
+<pre><code class="language-typescript">import { readFile } from &quot;fs/promises&quot; with { type: &quot;comptime&quot; };
+const result = readFile(&quot;file.txt&quot;, &quot;utf-8&quot;); // inferred as Promise&lt;string&gt;, but is actually a string
+</code></pre>
+<p>Since <code>readFile</code> is imported as a comptime function, the call is awaited and replaced with the file contents. To correctly type the result, you can use the <code>comptime</code> function to wrap the expression.</p>
+<pre><code class="language-typescript">import { readFile } from &quot;fs/promises&quot; with { type: &quot;comptime&quot; };
+import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
+const result = comptime(readFile(&quot;file.txt&quot;, &quot;utf-8&quot;)); // inferred as string
+</code></pre>
+<p>This is of course, zero-cost, since the <code>comptime</code> call is also compiled away.</p>
+<h2>Function Serialisation</h2>
+<p>Functions are serialised with their source code preserved. However, you must ensure that all values normally accessible in the function&#39;s scope are also available after serialisation. The best practice is to always take your function&#39;s dependencies as parameters.</p>
+<p>Example:</p>
+<pre><code class="language-typescript">const debug = comptime(process.env.DEBUG ? (x: string) =&gt; console.log(x) : () =&gt; {});
+
+debug(&quot;Initialising app...&quot;);
+</code></pre>
+<p>Compiles to (assuming <code>process.env.DEBUG</code> is <code>true</code>):</p>
+<!-- prettier-ignore -->
+<pre><code class="language-typescript">const debug = (x) =&gt; console.log(x);
+
+debug(&quot;Initialising app...&quot;);
+</code></pre>
+<h2>Class Instance Serialisation</h2>
+<p>Class instances are serialised as plain objects, with some limitations:</p>
+<ol>
+<li>Only enumerable own properties are preserved</li>
+<li>Prototype chain is not serialised</li>
+<li>Methods are not preserved unless explicitly defined as own properties</li>
+</ol>
+<p>Example:</p>
+<pre><code class="language-typescript">class MyClass {
+	constructor() {
+		this.foo = &quot;bar&quot;;
+	}
+	method() {
+		/* ... */
+	}
+}
+
+// This:
+const instance = comptime(new MyClass());
+
+// Becomes:
+const instance = { foo: &quot;bar&quot; };
+</code></pre>
+<p>Conversely, if you try to serialise a Class constructor, <code>comptime.ts</code> will serialise it into the class definition.</p>
+<pre><code class="language-typescript">const MyClass = comptime(
+	class {
+		static x = 5;
+		constructor() {
+			this.foo = &quot;bar&quot;;
+		}
+	},
+);
+</code></pre>
+<p>Compiles to:</p>
+<pre><code class="language-typescript">const MyClass = class {
+	static x = 5;
+	constructor() {
+		this.foo = &quot;bar&quot;;
+	}
+};
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Avoid Cyclic References</strong>: Ensure objects don&#39;t contain circular references</li>
+<li><strong>Handle Closures Carefully</strong>: Be explicit about what values functions need access to</li>
+<li><strong>Consider Class Serialisation</strong>: Remember that class instances lose their prototype chain</li>
+<li><strong>Use Typed Arrays</strong>: For binary data, prefer TypedArrays over regular arrays</li>
+<li><strong>Handle Promises</strong>: Remember that promises are automatically resolved</li>
+</ol>
+<h2>Common Pitfalls</h2>
+<ol>
+<li><strong>Symbol Usage</strong>: Don&#39;t use Symbols in comptime expressions</li>
+<li><strong>Environment Variables</strong>: Don&#39;t rely on runtime environment variables</li>
+<li><strong>Class Methods</strong>: Remember that class methods are not preserved</li>
+<li><strong>Cyclic References</strong>: Watch out for circular references in objects</li>
+<li><strong>Closure Scope</strong>: Ensure all required values are available at compile time</li>
+</ol>
+<h2>Troubleshooting</h2>
+<p>If you encounter serialisation issues:</p>
+<ol>
+<li>Check if the type is supported (refer to the table above)</li>
+<li>Ensure no cyclic references exist in your objects</li>
+<li>Verify that all required values are available at compile time</li>
+<li>For functions, check that all closure values are properly accessible</li>
+<li>For class instances, verify that you&#39;re only using enumerable own properties</li>
+</ol>
+</main>
+<script>
+	document.addEventListener("DOMContentLoaded", () => {
+		const counts = {};
+		document.querySelectorAll("h1,h2,h3,h4,h5,h6").forEach(h => {
+			const hasAnchor = h.querySelector("a");
+			if (hasAnchor) return;
+
+			let id = h.textContent
+				.toLowerCase()
+				.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F]/gu, "")
+				.replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, "")
+				.replace(/\s+/g, "-")
+				.replace(/-+/g, "-")
+				.replace(/^[-]+|[-]+$/g, "");
+			const n = counts[id] || 0;
+			counts[id] = n + 1;
+			h.id = n ? `${id}-${n}` : id;
+
+			const a = document.createElement("a");
+			a.className = "header-link";
+			a.href = `#${h.id}`;
+
+			const linker = document.createElement("span");
+			linker.className = "linker";
+			linker.innerText = "🔗";
+			a.appendChild(linker);
+
+			const text = document.createElement("span");
+			text.innerText = h.textContent;
+			a.appendChild(text);
+
+			h.innerHTML = "";
+			h.appendChild(a);
+		});
+	});
+
+	window.addEventListener("keydown", e => {
+		if (e.key === "Escape") {
+			const scrollY = window.scrollY;
+			window.location.hash = "";
+			window.scrollTo(0, scrollY);
+		}
+	});
+</script>
+</body>
+</html>
