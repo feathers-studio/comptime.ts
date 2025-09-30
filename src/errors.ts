@@ -1,14 +1,17 @@
-import boxen, { type Options } from "boxen";
-export const box = (text: string, options?: Options, skip?: boolean) =>
-	skip
-		? text
-		: boxen(
-				text
-					.split("\n")
-					.map(l => " " + l + " ")
-					.join("\n"),
-				options,
-		  );
+import { process } from "./util.ts";
+
+import type { Options } from "boxen";
+
+export let box = (text: string, options?: Options, skip?: boolean): string => text;
+
+if (!Boolean(process?.env.NO_BOX)) {
+	try {
+		if (!process) throw new Error();
+		const boxen = (await import("boxen")).default;
+		const pad = (text: string) => text.replace(/^.*$/gm, line => " " + line + " ");
+		box = (text, options, skip) => (skip ? text : boxen(pad(text), options));
+	} catch {}
+}
 
 export const COMPTIME_ERRORS = {
 	CT_ERR_GET_EVALUATION: "CT_ERR_GET_EVALUATION",

@@ -1,10 +1,17 @@
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { platform } from "node:os";
 import path from "path";
 
 type MaybePromise<T> = T | Promise<T>;
 
 export type ModuleResolver = (specifier: string, importer: string) => MaybePromise<string | null | undefined>;
+
+const isWin = platform() === "win32";
+const protocol = /^[a-zA-Z][a-zA-Z\d+\-.]+:/;
+// Windows wants file:// for absolute paths, otherwise it assumes drive letter is a protocol
+export const formatPath = (path: string) =>
+	(isWin && !protocol.test(path) ? "file://" : "") + path.replaceAll("\\", "\\\\");
 
 export function getModuleResolver(userResolver?: ModuleResolver): ModuleResolver {
 	const require = createRequire(fileURLToPath(import.meta.url));

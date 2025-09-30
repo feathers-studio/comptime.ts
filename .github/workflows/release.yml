@@ -11,8 +11,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - run : npm i --ignore-scripts
-    - run : npm run prepare
+    - uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+    - run : bun i --ignore-scripts
+    - run : bun run prepare
     - name: Update version from tag
       run: |
         TAG_VERSION=${GITHUB_REF#refs/tags/}

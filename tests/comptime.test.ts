@@ -1,18 +1,20 @@
-import { tmpdir } from "node:os";
+import { platform, tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { mkdir, readFile, writeFile, rm } from "fs/promises";
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, afterAll } from "bun:test";
 import { comptimeCompiler } from "../src/api.ts";
+import { formatPath } from "../src/resolve.ts";
 
 const randId = () => Math.random().toString(36).substring(2, 15);
 
 const dir = join(__dirname, "..");
 
 describe("comptime", () => {
+	const tempRoot = join(tmpdir(), "comptime-test");
 	let temp: string;
 
 	beforeEach(async () => {
-		temp = join(tmpdir(), randId());
+		temp = join(tempRoot, randId());
 		await mkdir(temp, { recursive: true });
 		process.chdir(temp);
 
@@ -34,12 +36,10 @@ describe("comptime", () => {
 			`,
 		);
 
-		await file("node_modules/comptime.ts/index.js", `export * from "${join(dir, "src/index.ts")}";`);
+		await file("node_modules/comptime.ts/index.js", `export * from "${formatPath(join(dir, "src/index.ts"))}";`);
 	});
 
-	afterEach(async () => {
-		await rm(temp, { recursive: true });
-	});
+	afterAll(async () => await rm(tempRoot, { recursive: true }));
 
 	const file = async (name: string, content: string) => {
 		const path = join(temp, name);
@@ -592,6 +592,30 @@ describe("comptime", () => {
 		return expect(result).toEqual(expected);
 	});
 
+	it("should resolve identifiers inside accessed functions", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			const x = 2;
+			function foo(y: number) {
+				return x + y;
+			}
+			console.log(comptime(foo(1)));
+		`,
+		);
+
+		const result = await getCompiled("foo.ts");
+		const expected = `
+			
+			const x = 2;
+			function foo(y: number) {
+				return x + y;
+			}
+			console.log(3);
+		`;
+		return expect(result).toEqual(expected);
+	});
 	it("should defer functions to be executed after comptime evaluation", async () => {
 		const fooname = await file(
 			"foo.ts",
@@ -637,7 +661,98 @@ describe("comptime", () => {
 		await getCompiled();
 		const foo = await readFile(join(dirname(fooname), "foo.txt"), "utf-8");
 		const bar = await readFile(join(dirname(fooname), "bar.txt"), "utf-8");
-		expect(foo).toEqual(fooname);
-		expect(bar).toEqual(barname);
+		if (platform() === "win32") {
+			// TODO(Thomas): Investigate this inconsistency:
+			// context.sourceFile (TypeScript?) gives paths of the form C:/Users/...
+			// but everything else uses C:\Users\...
+			expect(foo.replaceAll("/", "\\")).toEqual(fooname);
+			expect(bar.replaceAll("/", "\\")).toEqual(barname);
+		} else {
+			expect(foo).toEqual(fooname);
+			expect(bar).toEqual(barname);
+		}
+	});
+
+	it("should format emitted values correctly", async () => {
+		await file(
+			"value_emitter.ts",
+			`
+			export const a = null;
+			export const b = undefined;
+			export const c = true;
+			export const d = false;
+			export const e = 42;
+			export const f = Infinity;
+			export const g = -Infinity;
+			export const h = NaN;
+			export const i = 42n;
+			export const j = 'hello';
+			export const k = [1, true, null, undefined, 'hello', 42n];
+			export const l = new Date(0);
+			export const m = new Set();
+			m.add(42);
+			export const n = new Map();
+			n.set('foo', 'bar');
+			export const o = new Uint8Array([1,2,3]);
+			export const p = { foo: 'bar', baz: 42n };
+		`,
+		);
+		await file(
+			"importer.ts",
+			`
+			import * as mod from './value_emitter.ts' with { type: 'comptime' };
+			export const obj = mod;
+		`,
+		);
+		const expected = `
+			
+			export const obj = ({"a": null, "b": undefined, "c": true, "d": false, "e": 42, "f": Infinity, "g": -Infinity, "h": NaN, "i": 42n, "j": "hello", "k": [1, true, null, undefined, "hello", 42n], "l": new Date(0), "m": new Set([42]), "n": new Map([["foo", "bar"]]), "o": new Uint8Array([1, 2, 3]), "p": ({"foo": "bar", "baz": 42n})});
+		`;
+		const result = await getCompiled("importer.ts");
+		expect(result).toEqual(expected);
+	});
+
+	it("should serialise functions to their definition", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			const env = { DEBUG: "true" };
+			export const fn = comptime(env.DEBUG ? () => 1 + 2 : () => {});
+		`,
+		);
+		const expected = `
+			
+			const env = { DEBUG: "true" };
+			export const fn = () => 1 + 2;
+		`;
+		const result = await getCompiled("foo.ts");
+		expect(result).toEqual(expected);
+	});
+
+	it("should serialise classes to their definition", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			export const MyClass = comptime(class {
+				static x = 5;
+				constructor() {
+					this.foo = "bar";
+				}
+			});
+		`,
+		);
+		const expected = `
+			
+			export const MyClass = class {
+        static x = 5;
+        constructor() {
+            this.foo = "bar";
+        }
+    };
+		`;
+		const result = await getCompiled("foo.ts");
+		expect(result).toEqual(expected);
 	});
 });

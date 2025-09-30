@@ -1,6 +1,11 @@
-# Errors
+---
+title: comptime.ts | errors
+description: List of errors that can occur while using comptime.ts with illustrated explanations.
+featured-image: https://comptime.js.org/comptime.ts.jpg
+out: docs/errors.html
+---
 
-([back to home](../))
+# Errors
 
 Errors happen while writing code. And it can be hard to diagnose comptime evaluations, since you don't see the constructed code block that's being executed for each expression. `comptime.ts` attempts to provide as much information as possible to help you debug and fix issues.
 
@@ -8,12 +13,12 @@ Errors happen while writing code. And it can be hard to diagnose comptime evalua
 
 The following are known errors that can occur when using comptime.
 
--   [`CT_ERR_GET_EVALUATION`](#ct_err_get_evaluation)
--   [`CT_ERR_SYNTAX_CHECK`](#ct_err_syntax_check)
--   [`CT_ERR_ERASE_TYPES`](#ct_err_erase_types)
--   [`CT_ERR_CREATE_FUNCTION`](#ct_err_create_function)
--   [`CT_ERR_EVALUATE`](#ct_err_evaluate)
--   [`CT_ERR_NO_COMPTIME`](#ct_err_no_comptime)
+- [`CT_ERR_GET_EVALUATION`](#ct_err_get_evaluation)
+- [`CT_ERR_SYNTAX_CHECK`](#ct_err_syntax_check)
+- [`CT_ERR_ERASE_TYPES`](#ct_err_erase_types)
+- [`CT_ERR_CREATE_FUNCTION`](#ct_err_create_function)
+- [`CT_ERR_EVALUATE`](#ct_err_evaluate)
+- [`CT_ERR_NO_COMPTIME`](#ct_err_no_comptime)
 
 ---
 
@@ -128,9 +133,9 @@ This error implies that an evaluation block was created, but it failed to evalua
 
 It could due to:
 
--   An error was thrown while evaluating the constructed code block.
--   Logical errors in the comptime expression.
--   A dependency could not be resolved at compile time.
+- An error was thrown while evaluating the constructed code block.
+- Logical errors in the comptime expression.
+- A dependency could not be resolved at compile time.
 
 A common cause of this error might be trying to evaluate an expression that cannot resolve all its dependencies at compile time.
 
@@ -177,8 +182,8 @@ This error occurs when the `comptime()` function is called outside of a comptime
 
 This means you either:
 
--   Imported `comptime` without the `{ type: "comptime" }` attribute.
--   Attempted to run the code without compiling.
+- Imported `comptime` without the `{ type: "comptime" }` attribute.
+- Attempted to run the code without compiling.
 
 ### Broken Code ❌
 

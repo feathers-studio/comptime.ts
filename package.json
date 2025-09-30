@@ -3,6 +3,7 @@
 	"version": "0.0.0-dev",
 	"module": "index.ts",
 	"type": "module",
+	"sideEffects": false,
 	"exports": {
 		".": "./lib/index.js",
 		"./api": "./lib/api.js",
@@ -10,12 +11,13 @@
 		"./bun": "./lib/bun.js"
 	},
 	"bin": {
-		"comptime.ts": "./lib/bin.js"
+		"comptime": "./lib/bin.js"
 	},
 	"scripts": {
 		"test": "bun test tests/comptime.test.ts",
 		"check": "tsc --noEmit",
-		"prepare": "tsc && ./docs/build.sh"
+		"docs": "bun run ./docs/build.ts",
+		"prepare": "tsc && bun docs"
 	},
 	"files": [
 		"lib"
@@ -63,10 +65,10 @@
 	"devDependencies": {
 		"@types/bun": "latest",
 		"marked": "^15.0.11",
-		"vite": "^6"
+		"vite": "^7"
 	},
 	"peerDependencies": {
-		"vite": "^6"
+		"vite": "^6 || ^7"
 	},
 	"peerDependenciesMeta": {
 		"vite": {
