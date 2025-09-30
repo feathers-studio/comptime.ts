@@ -41,12 +41,62 @@ export function removeFalseAndUndefined<T>(value: T): RemoveFalse<T> {
 }
 
 export function getTypeInfo(sourceFile: ts.SourceFile, checker: ts.TypeChecker, type: ts.Type): TypeInfo | undefined {
-	if (type.isLiteral()) {
+	const flags = type.getFlags();
+	if (flags & ts.TypeFlags.EnumLiteral) {
+		const enumType = type as ts.EnumType;
+		const enumName = enumType.symbol.name;
+		const enumValues: TypeInfo.EnumInfo["values"] = [];
+
+		if (enumType.symbol.exports) {
+			enumType.symbol.exports.forEach((memberSymbol, _key) => {
+				if (memberSymbol.flags & ts.SymbolFlags.EnumMember) {
+					const declaration = memberSymbol.valueDeclaration;
+					if (declaration && ts.isEnumMember(declaration)) {
+						const memberName = memberSymbol.name;
+						const memberValue = checker.getConstantValue(declaration);
+						if (typeof memberValue === "string" || typeof memberValue === "number") {
+							enumValues.push({ name: memberName, value: memberValue });
+						} else {
+							console.warn(
+								`Enum member ${enumName}.${memberName} has a non-constant or unresolvable value. Type: ${typeof memberValue}`,
+							);
+						}
+					}
+				}
+			});
+		}
+		return { type: "enum", name: enumName, values: enumValues };
+	} else if (type.isLiteral()) {
 		let value = type.value as string | number | bigint | ts.PseudoBigInt;
 		if (typeof value === "object" && "base10Value" in value) {
 			value = BigInt(value.base10Value) * (value.negative ? -1n : 1n);
 		}
 		return { type: "literal", value };
+	} else if (flags & ts.TypeFlags.BooleanLiteral) {
+		return { type: "literal", value: (type as unknown as { intrinsicName: "true" | "false" }).intrinsicName === "true" }
+	} else if (flags & ts.TypeFlags.String) {
+		return { type: "string" };
+	} else if (flags & ts.TypeFlags.Number) {
+		return { type: "number" };
+	} else if (flags & ts.TypeFlags.Boolean) {
+		return { type: "boolean" };
+	} else if (flags & ts.TypeFlags.BigInt) {
+		return { type: "bigint" };
+	} else if (flags & ts.TypeFlags.ESSymbolLike) {
+		// ESSymbolLike includes ESSymbol and UniqueSymbol
+		return { type: "symbol" };
+	} else if (flags & ts.TypeFlags.Null) {
+		return { type: "null" };
+	} else if (flags & ts.TypeFlags.Undefined) {
+		return { type: "undefined" };
+	} else if (flags & ts.TypeFlags.Any) {
+		return { type: "any" };
+	} else if (flags & ts.TypeFlags.Unknown) {
+		return { type: "unknown" };
+	} else if (flags & ts.TypeFlags.Never) {
+		return { type: "never" };
+	} else if (flags & ts.TypeFlags.Void) {
+		return { type: "void" };
 	} else if (type.isUnion()) {
 		return { type: "union", members: type.types.map(t => getTypeInfo(sourceFile, checker, t)!) };
 	} else if (type.isIntersection()) {
@@ -87,110 +137,60 @@ export function getTypeInfo(sourceFile: ts.SourceFile, checker: ts.TypeChecker, 
 		);
 
 		return { type: "object", members, indexSignatures };
-	} else {
-		const flags = type.getFlags();
-		if (flags & ts.TypeFlags.String) {
-			return { type: "string" };
-		} else if (flags & ts.TypeFlags.Number) {
-			return { type: "number" };
-		} else if (flags & ts.TypeFlags.Boolean) {
-			return { type: "boolean" };
-		} else if (flags & ts.TypeFlags.BigInt) {
-			return { type: "bigint" };
-		} else if (flags & ts.TypeFlags.ESSymbolLike) {
-			// ESSymbolLike includes ESSymbol and UniqueSymbol
-			return { type: "symbol" };
-		} else if (flags & ts.TypeFlags.Null) {
-			return { type: "null" };
-		} else if (flags & ts.TypeFlags.Undefined) {
-			return { type: "undefined" };
-		} else if (flags & ts.TypeFlags.Any) {
-			return { type: "any" };
-		} else if (flags & ts.TypeFlags.Unknown) {
-			return { type: "unknown" };
-		} else if (flags & ts.TypeFlags.Never) {
-			return { type: "never" };
-		} else if (flags & ts.TypeFlags.Void) {
-			return { type: "void" };
-		} else if ((type.flags & ts.TypeFlags.Enum) !== 0) {
-			const enumType = type as ts.EnumType;
-			const enumName = enumType.symbol.name;
-			const enumValues: TypeInfo.EnumInfo["values"] = [];
+	} else if (flags & ts.TypeFlags.Object) {
+		const objectType = type as ts.ObjectType;
 
-			if (enumType.symbol.exports) {
-				enumType.symbol.exports.forEach((memberSymbol, _key) => {
-					if (memberSymbol.flags & ts.SymbolFlags.EnumMember) {
-						const declaration = memberSymbol.valueDeclaration;
-						if (declaration && ts.isEnumMember(declaration)) {
-							const memberName = memberSymbol.name;
-							const memberValue = checker.getConstantValue(declaration);
-							if (typeof memberValue === "string" || typeof memberValue === "number") {
-								enumValues.push({ name: memberName, value: memberValue });
-							} else {
-								console.warn(
-									`Enum member ${enumName}.${memberName} has a non-constant or unresolvable value. Type: ${typeof memberValue}`,
-								);
-							}
-						}
-					}
-				});
-			}
-			return { type: "enum", name: enumName, values: enumValues };
-		} else if (flags & ts.TypeFlags.Object) {
-			const objectType = type as ts.ObjectType;
-
-			// Array check
-			if (checker.isArrayType(objectType)) {
-				// Use getIndexTypeOfType with IndexKind.Number for arrays
-				const elementType = checker.getIndexTypeOfType(objectType, ts.IndexKind.Number);
-				if (elementType) {
-					const elementTypeInfo = getTypeInfo(sourceFile, checker, elementType);
-					if (!elementTypeInfo) {
-						throw new Error(
-							"Could not get type info for array element type, even though element type was found.",
-						);
-					}
-					return { type: "array", elementType: elementTypeInfo };
+		// Array check
+		if (checker.isArrayType(objectType)) {
+			// Use getIndexTypeOfType with IndexKind.Number for arrays
+			const elementType = checker.getIndexTypeOfType(objectType, ts.IndexKind.Number);
+			if (elementType) {
+				const elementTypeInfo = getTypeInfo(sourceFile, checker, elementType);
+				if (!elementTypeInfo) {
+					throw new Error(
+						"Could not get type info for array element type, even though element type was found.",
+					);
 				}
-				// This would mean it's an array type but has no number index signature
-				throw new Error(
-					"Array element type could not be determined: getIndexTypeOfType returned undefined for an array type.",
-				);
+				return { type: "array", elementType: elementTypeInfo };
 			}
-
-			// Tuple check
-			if (checker.isTupleType(objectType)) {
-				const tupleType = objectType as ts.TupleType;
-
-				const elementTypes = tupleType.typeArguments;
-
-				if (!elementTypes) {
-					throw new Error("Tuple type did not have type arguments");
-				}
-
-				const members = elementTypes.map(elType => {
-					const memberInfo = getTypeInfo(sourceFile, checker, elType);
-					if (!memberInfo) throw new Error("Could not get type info for tuple element");
-					return memberInfo;
-				});
-
-				// console.log({
-				// 	readonly: tupleType.readonly,
-				// 	labeledElementDeclarations: tupleType.labeledElementDeclarations,
-				// 	elementFlags: tupleType.elementFlags,
-				// 	hasVariadic: (tupleType.combinedFlags & ts.ElementFlags.Variable) !== 0,
-				// });
-
-				// tupleType.elementFlags;
-
-				// this works by accident, but it seems tupleType is not actually a ts.TupleType
-				// all properties/methods that should exist on TupleType are missing, including readonly
-				return removeFalseAndUndefined({ type: "tuple", members, readonly: tupleType.readonly });
-			}
-
-			// If it's an ObjectType but not Array, Tuple, or Enum, and wasn't caught by isClassOrInterface,
-			// it will fall through to the final 'return undefined'.
+			// This would mean it's an array type but has no number index signature
+			throw new Error(
+				"Array element type could not be determined: getIndexTypeOfType returned undefined for an array type.",
+			);
 		}
+
+		// Tuple check
+		if (checker.isTupleType(objectType)) {
+			const tupleType = objectType as ts.TupleType;
+
+			const elementTypes = tupleType.typeArguments;
+
+			if (!elementTypes) {
+				throw new Error("Tuple type did not have type arguments");
+			}
+
+			const members = elementTypes.map(elType => {
+				const memberInfo = getTypeInfo(sourceFile, checker, elType);
+				if (!memberInfo) throw new Error("Could not get type info for tuple element");
+				return memberInfo;
+			});
+
+			// console.log({
+			// 	readonly: tupleType.readonly,
+			// 	labeledElementDeclarations: tupleType.labeledElementDeclarations,
+			// 	elementFlags: tupleType.elementFlags,
+			// 	hasVariadic: (tupleType.combinedFlags & ts.ElementFlags.Variable) !== 0,
+			// });
+
+			// tupleType.elementFlags;
+
+			// this works by accident, but it seems tupleType is not actually a ts.TupleType
+			// all properties/methods that should exist on TupleType are missing, including readonly
+			return removeFalseAndUndefined({ type: "tuple", members, readonly: tupleType.readonly });
+		}
+
+		// If it's an ObjectType but not Array, Tuple, or Enum, and wasn't caught by isClassOrInterface,
+		// it will fall through to the final 'return undefined'.
 	}
 
 	// allow compilation for unsupported types for now
@@ -282,7 +282,7 @@ export function getTypeInfoReplacements(opts?: Filterable<GetComptimeReplacement
 				})
 				.filter(x => x != null);
 
-			return [sourceFile.fileName, replacements];
+			return [resolved, replacements];
 		}),
 	);
 }

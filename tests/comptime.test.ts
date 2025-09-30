@@ -2,7 +2,8 @@ import { platform, tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { mkdir, readFile, writeFile, rm } from "fs/promises";
 import { describe, it, expect, beforeEach, afterEach, afterAll } from "bun:test";
-import { comptimeCompiler } from "../src/api.ts";
+import { applyComptimeReplacements, comptimeCompiler } from "../src/api.ts";
+import { getTypeInfoReplacements } from "../src/typeInfo.ts";
 import { formatPath } from "../src/resolve.ts";
 
 const randId = () => Math.random().toString(36).substring(2, 15);
@@ -10,6 +11,7 @@ const randId = () => Math.random().toString(36).substring(2, 15);
 const dir = join(__dirname, "..");
 
 describe("comptime", () => {
+	const cwd = process.cwd();
 	const tempRoot = join(tmpdir(), "comptime-test");
 	let temp: string;
 
@@ -39,7 +41,10 @@ describe("comptime", () => {
 		await file("node_modules/comptime.ts/index.js", `export * from "${formatPath(join(dir, "src/index.ts"))}";`);
 	});
 
-	afterAll(async () => await rm(tempRoot, { recursive: true }));
+	afterAll(async () => {
+		process.chdir(cwd);
+		await rm(tempRoot, { recursive: true });
+	});
 
 	const file = async (name: string, content: string) => {
 		const path = join(temp, name);
@@ -48,10 +53,13 @@ describe("comptime", () => {
 		return path;
 	};
 
-	const getCompiled = async (name?: string) => {
+	const getCompiled = async (name?: string, typeInfo = false) => {
 		const tsconfigPath = join(temp, "tsconfig.json");
 		const outdir = join(temp, "out");
-		await comptimeCompiler({ tsconfigPath }, outdir);
+		if (typeInfo) {
+			const replacements = getTypeInfoReplacements({ tsconfigPath });
+			await applyComptimeReplacements({ tsconfigPath, outdir }, replacements);
+		} else await comptimeCompiler({ tsconfigPath }, outdir);
 		if (name) return await readFile(resolve(outdir, name), "utf-8");
 	};
 
@@ -753,6 +761,149 @@ describe("comptime", () => {
     };
 		`;
 		const result = await getCompiled("foo.ts");
+		expect(result).toEqual(expected);
+	});
+
+	it("should emit basic typeInfo", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			export const boolInfo = typeInfo<boolean>();
+			export const trueInfo = typeInfo<true>();
+			export const falseInfo = typeInfo<false>();
+			export const numberInfo = typeInfo<number>();
+			export const fourInfo = typeInfo<4>();
+			export const bigintInfo = typeInfo<bigint>();
+			export const bigFourInfo = typeInfo<4n>();
+			export const stringInfo = typeInfo<string>();
+			export const helloInfo = typeInfo<"hello">();
+			export const symbolInfo = typeInfo<symbol>();
+			export const nullInfo = typeInfo<null>();
+			export const undefinedInfo = typeInfo<undefined>();
+			export const anyInfo = typeInfo<any>();
+			export const unknownInfo = typeInfo<unknown>();
+			export const neverInfo = typeInfo<never>();
+			export const voidInfo = typeInfo<void>();
+			`,
+		);
+		// TODO: typeInfo runs should also remove the comptime import
+		const expected = `
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			export const boolInfo = { "type": "boolean" };
+			export const trueInfo = { "type": "literal", "value": true };
+			export const falseInfo = { "type": "literal", "value": false };
+			export const numberInfo = { "type": "number" };
+			export const fourInfo = { "type": "literal", "value": 4 };
+			export const bigintInfo = { "type": "bigint" };
+			export const bigFourInfo = { "type": "literal", "value": 4n };
+			export const stringInfo = { "type": "string" };
+			export const helloInfo = { "type": "literal", "value": "hello" };
+			export const symbolInfo = { "type": "symbol" };
+			export const nullInfo = { "type": "null" };
+			export const undefinedInfo = { "type": "undefined" };
+			export const anyInfo = { "type": "any" };
+			export const unknownInfo = { "type": "unknown" };
+			export const neverInfo = { "type": "never" };
+			export const voidInfo = { "type": "void" };
+			`;
+		const result = await getCompiled("foo.ts", true);
+		expect(result).toEqual(expected);
+	});
+
+	it("should emit correct union typeInfo", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			export const basicUnion = typeInfo<string | number>();
+			export const literalUnion = typeInfo<4 | "hello">();
+			export const anyUnion = typeInfo<number | any>();
+			export const stringNeverUnion = typeInfo<string | never>();
+			`
+		);
+		// TODO: typeInfo runs should also remove the comptime import
+		const expected = `
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			export const basicUnion = { "type": "union", "members": [{ "type": "string" }, { "type": "number" }] };
+			export const literalUnion = { "type": "union", "members": [{ "type": "literal", "value": 4 }, { "type": "literal", "value": "hello" }] };
+			export const anyUnion = { "type": "any" };
+			export const stringNeverUnion = { "type": "string" };
+			`;
+		const result = await getCompiled("foo.ts", true);
+		expect(result).toEqual(expected);
+	});
+
+	it("should emit typeInfo for crazy TypeScript logic", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			type UnionToIntersection<U> = (
+				U extends any ? (x: U) => void : never
+			) extends ((x: infer I) => void) ? I : never;
+
+			export const impossibleInfo = typeInfo<UnionToIntersection<4 | 5>>();
+			export const possibleInfo = typeInfo<UnionToIntersection<'foo' | { foo: string }>>();
+			`
+		);
+		// TODO: typeInfo runs should also remove the comptime import
+		// TODO: Object literals should be representable
+		const expected = `
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			type UnionToIntersection<U> = (
+				U extends any ? (x: U) => void : never
+			) extends ((x: infer I) => void) ? I : never;
+
+			export const impossibleInfo = { "type": "never" };
+			export const possibleInfo = { "type": "intersection", "members": [{ "type": "literal", "value": "foo" }, { "type": "unrepresentable" }] };
+			`;
+		const result = await getCompiled("foo.ts", true);
+		expect(result).toEqual(expected);
+	});
+
+	it('should emit typeInfo for enums', async () => {
+		await file(
+			"foo.ts",
+			`
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			enum Foo {
+				Bar,
+				Baz
+			};
+			type Bar = Foo;
+			export const enumInfo = typeInfo<Foo>();
+			export const indirectEnumInfo = typeInfo<Bar>();
+
+			enum Empty {};
+
+			export const emptyEnumInfo = typeInfo<Empty>();
+
+			enum Baz {
+				Qux = "hello",
+			};
+			export const explicitEnumInfo = typeInfo<Baz>();
+			`
+		);
+		const expected = `
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			enum Foo {
+				Bar,
+				Baz
+			};
+			export const enumInfo = { "type": "enum", "name": "Foo", "values": [{ "name": "Bar", "value": 0 }, { "name": "Baz", "value": 1 }] };
+			export const indirectEnumInfo = { "type": "enum", "name": "Foo", "values": [{ "name": "Bar", "value": 0 }, { "name": "Baz", "value": 1 }] };
+
+			enum Empty {};
+
+			export const emptyEnumInfo = { "type": "enum", "name": "Empty", "values": [] };
+
+			enum Baz {
+				Qux = "hello",
+			};
+			export const explicitEnumInfo = { "type": "enum", "name": "Bar", "values": [{ "name": "Qux", "value": "hello" }] };
+			`;
+		const result = await getCompiled("foo.ts", true);
 		expect(result).toEqual(expected);
 	});
 });
