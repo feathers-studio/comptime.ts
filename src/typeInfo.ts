@@ -42,7 +42,7 @@ export function removeFalseAndUndefined<T>(value: T): RemoveFalse<T> {
 
 export function getTypeInfo(sourceFile: ts.SourceFile, checker: ts.TypeChecker, type: ts.Type): TypeInfo | undefined {
 	const flags = type.getFlags();
-	if (flags & ts.TypeFlags.EnumLiteral) {
+	if (flags & (ts.TypeFlags.Enum | ts.TypeFlags.EnumLiteral | ts.TypeFlags.EnumLike)) {
 		const enumType = type as ts.EnumType;
 		const enumName = enumType.symbol.name;
 		const enumValues: TypeInfo.EnumInfo["values"] = [];
