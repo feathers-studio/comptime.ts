@@ -44,11 +44,22 @@ export function getTypeInfo(sourceFile: ts.SourceFile, checker: ts.TypeChecker, 
 	const flags = type.getFlags();
 	if (flags & (ts.TypeFlags.Enum | ts.TypeFlags.EnumLiteral | ts.TypeFlags.EnumLike)) {
 		const enumType = type as ts.EnumType;
-		const enumName = enumType.symbol.name;
+		let enumName = enumType.symbol.name;
 		const enumValues: TypeInfo.EnumInfo["values"] = [];
-
-		if (enumType.symbol.exports) {
-			enumType.symbol.exports.forEach((memberSymbol, _key) => {
+		let symbolExports = enumType.symbol.exports;
+		
+		if (!(flags & ts.TypeFlags.Union)) {
+			if (flags & ts.TypeFlags.StringOrNumberLiteral) {
+				//@ts-expect-error TODO: Proper typing
+				enumName = enumType.symbol.parent.name;
+				//@ts-expect-error TODO: Proper typing
+				symbolExports = enumType.symbol.parent.exports;
+			} else {
+				return { type: "enum", name: enumName, values: enumValues }
+			}
+		}
+		if (symbolExports) {
+			symbolExports.forEach((memberSymbol, _key) => {
 				if (memberSymbol.flags & ts.SymbolFlags.EnumMember) {
 					const declaration = memberSymbol.valueDeclaration;
 					if (declaration && ts.isEnumMember(declaration)) {
@@ -190,7 +201,18 @@ export function getTypeInfo(sourceFile: ts.SourceFile, checker: ts.TypeChecker, 
 		}
 
 		// If it's an ObjectType but not Array, Tuple, or Enum, and wasn't caught by isClassOrInterface,
-		// it will fall through to the final 'return undefined'.
+		// attempt to construct a TypeInfo object for an object literal.
+
+		const info: TypeInfo.ObjectInfo = { "type": "object", "members": {} };
+		if (type.symbol.members) {
+			type.symbol.members.forEach((memberSymbol, _key) => {
+				const propType = getTypeInfo(sourceFile, checker, checker.getTypeOfSymbol(memberSymbol));
+				if (propType) {
+					info.members[memberSymbol.name] = { type: propType };
+				}
+			});
+		}
+		return info;
 	}
 
 	// allow compilation for unsupported types for now

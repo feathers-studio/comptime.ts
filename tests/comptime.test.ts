@@ -856,13 +856,13 @@ describe("comptime", () => {
 			) extends ((x: infer I) => void) ? I : never;
 
 			export const impossibleInfo = { "type": "never" };
-			export const possibleInfo = { "type": "intersection", "members": [{ "type": "literal", "value": "foo" }, { "type": "unrepresentable" }] };
+			export const possibleInfo = { "type": "intersection", "members": [{ "type": "literal", "value": "foo" }, { "type": "object", "members": { "foo": { "type": { "type": "string" } } } }] };
 			`;
 		const result = await getCompiled("foo.ts", true);
 		expect(result).toEqual(expected);
 	});
 
-	it('should emit typeInfo for enums', async () => {
+	it("should emit typeInfo for enums", async () => {
 		await file(
 			"foo.ts",
 			`
@@ -883,7 +883,7 @@ describe("comptime", () => {
 				Qux = "hello",
 			};
 			export const explicitEnumInfo = typeInfo<Baz>();
-			`
+			`,
 		);
 		const expected = `
 			import { typeInfo } from "comptime.ts" with { type: "comptime" };
@@ -891,6 +891,7 @@ describe("comptime", () => {
 				Bar,
 				Baz
 			};
+			type Bar = Foo;
 			export const enumInfo = { "type": "enum", "name": "Foo", "values": [{ "name": "Bar", "value": 0 }, { "name": "Baz", "value": 1 }] };
 			export const indirectEnumInfo = { "type": "enum", "name": "Foo", "values": [{ "name": "Bar", "value": 0 }, { "name": "Baz", "value": 1 }] };
 
@@ -901,7 +902,68 @@ describe("comptime", () => {
 			enum Baz {
 				Qux = "hello",
 			};
-			export const explicitEnumInfo = { "type": "enum", "name": "Bar", "values": [{ "name": "Qux", "value": "hello" }] };
+			export const explicitEnumInfo = { "type": "enum", "name": "Baz", "values": [{ "name": "Qux", "value": "hello" }] };
+			`;
+		const result = await getCompiled("foo.ts", true);
+		expect(result).toEqual(expected);
+	});
+	it("should emit typeInfo for arrays", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			type Foo = string[];
+			type Bar = (string | number)[];
+
+			export const fooArrayInfo = typeInfo<Foo>();
+			export const barArrayInfo = typeInfo<Bar>();
+			`,
+		);
+		const expected = `
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			type Foo = string[];
+			type Bar = (string | number)[];
+
+			export const fooArrayInfo = { "type": "array", "elementType": { "type": "string" } };
+			export const barArrayInfo = { "type": "array", "elementType": { "type": "union", "members": [{ "type": "string" }, { "type": "number" }] } };
+			`;
+		const result = await getCompiled("foo.ts", true);
+		expect(result).toEqual(expected);
+	});
+	it("should emit typeInfo for tuples", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			type Foo = [string, number];
+
+			export const fooTupleInfo = typeInfo<Foo>();
+			`,
+		);
+		const expected = `
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			type Foo = [string, number];
+
+			export const fooTupleInfo = { "type": "tuple", "members": [{ "type": "string" }, { "type": "number" }] };
+			`;
+		const result = await getCompiled("foo.ts", true);
+		expect(result).toEqual(expected);
+	});
+	it("should emit typeInfo for object literals", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			type Foo = { foo: string, bar: number };
+
+			export const fooObjectInfo = typeInfo<Foo>();
+			`,
+		);
+		const expected = `
+			import { typeInfo } from "comptime.ts" with { type: "comptime" };
+			type Foo = { foo: string, bar: number };
+
+			export const fooObjectInfo = { "type": "object", "members": { "foo": { "type": { "type": "string" } }, "bar": { "type": { "type": "number" } } } };
 			`;
 		const result = await getCompiled("foo.ts", true);
 		expect(result).toEqual(expected);
