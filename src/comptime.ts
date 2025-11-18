@@ -173,7 +173,7 @@ const getImportLine = async (
 						values.splice(valuesComptimeIndex, 1);
 					}
 					if (values.length === 0) return [];
-					return [`${name}: ${values.join('+')}`];
+					return [`${name}: "${values.join('+')}"`];
 				}).join(", ")
 				: null
 			: null;
@@ -339,7 +339,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 					const elements = each.attributes?.elements;
 					if (!elements) return false;
 
-					const comptime = elements.some(elem => elem.name.text === 'type' && elem.value.getText().slice(1, -1) === "comptime");
+					const comptime = elements.some(elem => elem.name.text === 'type' && elem.value.getText().slice(1, -1).split('+').map(v => v.trim()).includes("comptime"));
 
 					return comptime;
 				});
