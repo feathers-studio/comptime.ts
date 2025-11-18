@@ -170,9 +170,7 @@ const getImportLine = async (
 					if ((name === 'at' || name === 'type') && value.slice(1, -1) === 'comptime') {
 						return [];
 					}
-					if (value === '"json"')
-						return [`${name}: ${value}`];
-					return [];
+					return [`${name}: ${value}`];
 				}).join(", ")
 				: null
 			: null;

@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { platform } from "node:os";
-import path from "path";
+import path from "node:path";
 
 type MaybePromise<T> = T | Promise<T>;
 
