@@ -161,19 +161,35 @@ const getImportLine = async (
 	const importPath = await resolver(specifier, importer);
 	if (!importPath) throw new Error("Could not resolve module: " + specifier + " from " + importer);
 	const formattedImportPath = formatPath(importPath);
+	const importAttributes =
+		'attributes' in decl && decl.attributes
+			? 'elements' in decl.attributes
+				? decl.attributes.elements.flatMap(attr => {
+					const name = attr.name.getText();
+					const value = attr.value.getText();
+					if ((name === 'at' || name === 'type') && value === '"comptime"') {
+						return [];
+					}
+					if (value === '"json"')
+						return [`${name}: ${value}`];
+					return [];
+				}).join(", ")
+				: null
+			: null;
+	const importAttributeString = importAttributes ? ", { with: { " + importAttributes + " } }" : "";
 
 	if (ts.isImportSpecifier(imp)) {
 		// Named import: import { foo } from ... or import { foo as bar } from ...
 		const imported = imp.propertyName ? imp.propertyName.getText() : imp.name.getText();
 		const local = imp.name.getText();
 		const binding = imported === local ? local : `${imported}: ${local}`;
-		return `const { ${binding} } = await import("${formattedImportPath}");`;
+		return `const { ${binding} } = await import("${formattedImportPath}"${importAttributeString});`;
 	} else if (ts.isNamespaceImport(imp)) {
 		// Namespace import: import * as foo from ...
-		return `const ${imp.name.getText()} = await import("${formattedImportPath}");`;
+		return `const ${imp.name.getText()} = await import("${formattedImportPath}"${importAttributeString});`;
 	} else if (ts.isImportClause(imp) && imp.name) {
 		// Default import: import foo from ...
-		return `const { default: ${imp.name.getText()} } = await import("${formattedImportPath}");`;
+		return `const { default: ${imp.name.getText()} } = await import("${formattedImportPath}"${importAttributeString});`;
 	}
 	throw new Error("Unsupported import type for comptime evaluation.");
 };
@@ -322,7 +338,15 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 					const elements = each.attributes?.elements;
 					if (!elements) return false;
 
-					const comptime = elements.some(elem => elem.value.getText().slice(1, -1) === "comptime");
+					const comptime = elements.some(elem => {
+						const comptimeAttributeValue = elem.value.getText().slice(1, -1) === "comptime";
+						if (comptimeAttributeValue && elem.name.text === 'type') {
+							const pos = elem.name.getStart();
+							const {line, character } = sourceFile.getLineAndCharacterOfPosition(pos);
+							console.warn(`DeprecationWarning: \`import ... with { type: "comptime" }\` is deprecated, prefer using \`with { at: "comptime" }\`\n\tat ${resolved}:${line + 1}:${character + 1}`);
+						}
+						return comptimeAttributeValue && (elem.name.text === 'at' || elem.name.text === 'type');
+					});
 
 					return comptime;
 				});
