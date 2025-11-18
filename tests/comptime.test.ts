@@ -1,7 +1,7 @@
 import { platform, tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
-import { mkdir, readFile, writeFile, rm } from "fs/promises";
-import { describe, it, expect, beforeEach, afterEach, afterAll } from "bun:test";
+import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
+import { describe, it, expect, beforeEach, afterAll } from "bun:test";
 import { comptimeCompiler } from "../src/api.ts";
 import { formatPath } from "../src/resolve.ts";
 

@@ -161,19 +161,36 @@ const getImportLine = async (
 	const importPath = await resolver(specifier, importer);
 	if (!importPath) throw new Error("Could not resolve module: " + specifier + " from " + importer);
 	const formattedImportPath = formatPath(importPath);
+	const importAttributes =
+		'attributes' in decl && decl.attributes
+			? 'elements' in decl.attributes
+				? decl.attributes.elements.flatMap(attr => {
+					const name = attr.name.getText();
+					const values = attr.value.getText().slice(1, -1).split('+').map(v => v.trim());
+					const valuesComptimeIndex = values.indexOf("comptime");
+					// Remove "comptime" from a "+"-separated string of import types (like `... with { type: "json+comptime"  } }`)
+					if (name === 'type' && valuesComptimeIndex !== -1) {
+						values.splice(valuesComptimeIndex, 1);
+					}
+					if (values.length === 0) return [];
+					return [`${name}: "${values.join('+')}"`];
+				}).join(", ")
+				: null
+			: null;
+	const importAttributeString = importAttributes ? ", { with: { " + importAttributes + " } }" : "";
 
 	if (ts.isImportSpecifier(imp)) {
 		// Named import: import { foo } from ... or import { foo as bar } from ...
 		const imported = imp.propertyName ? imp.propertyName.getText() : imp.name.getText();
 		const local = imp.name.getText();
 		const binding = imported === local ? local : `${imported}: ${local}`;
-		return `const { ${binding} } = await import("${formattedImportPath}");`;
+		return `const { ${binding} } = await import("${formattedImportPath}"${importAttributeString});`;
 	} else if (ts.isNamespaceImport(imp)) {
 		// Namespace import: import * as foo from ...
-		return `const ${imp.name.getText()} = await import("${formattedImportPath}");`;
+		return `const ${imp.name.getText()} = await import("${formattedImportPath}"${importAttributeString});`;
 	} else if (ts.isImportClause(imp) && imp.name) {
 		// Default import: import foo from ...
-		return `const { default: ${imp.name.getText()} } = await import("${formattedImportPath}");`;
+		return `const { default: ${imp.name.getText()} } = await import("${formattedImportPath}"${importAttributeString});`;
 	}
 	throw new Error("Unsupported import type for comptime evaluation.");
 };
@@ -322,7 +339,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 					const elements = each.attributes?.elements;
 					if (!elements) return false;
 
-					const comptime = elements.some(elem => elem.value.getText().slice(1, -1) === "comptime");
+					const comptime = elements.some(elem => elem.name.text === 'type' && elem.value.getText().slice(1, -1).split('+').map(v => v.trim()).includes("comptime"));
 
 					return comptime;
 				});
