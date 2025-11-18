@@ -35,10 +35,10 @@ function defer(fn: Defer) {
  *
  * ## Usage
  *
- * Import the `comptime` function from `comptime.ts` with the `at: "comptime"` option.
+ * Import the `comptime` function from `comptime.ts` with the `type: "comptime"` option.
  *
  * ```ts
- * import { comptime } from "comptime.ts" with { at: "comptime" };
+ * import { comptime } from "comptime.ts" with { type: "comptime" };
  * ```
  *
  * Use it to force comptime evaluation of an expression.

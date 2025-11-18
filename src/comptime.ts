@@ -166,11 +166,14 @@ const getImportLine = async (
 			? 'elements' in decl.attributes
 				? decl.attributes.elements.flatMap(attr => {
 					const name = attr.name.getText();
-					const value = attr.value.getText();
-					if ((name === 'at' || name === 'type') && value.slice(1, -1) === 'comptime') {
-						return [];
+					const values = attr.value.getText().slice(1, -1).split('+').map(v => v.trim());
+					const valuesComptimeIndex = values.indexOf("comptime");
+					// Remove "comptime" from a "+"-separated string of import types (like `... with { type: "json+comptime"  } }`)
+					if (name === 'type' && valuesComptimeIndex !== -1) {
+						values.splice(valuesComptimeIndex, 1);
 					}
-					return [`${name}: ${value}`];
+					if (values.length === 0) return [];
+					return [`${name}: ${values.join('+')}`];
 				}).join(", ")
 				: null
 			: null;
@@ -336,15 +339,7 @@ export async function getComptimeReplacements(opts?: Filterable<GetComptimeRepla
 					const elements = each.attributes?.elements;
 					if (!elements) return false;
 
-					const comptime = elements.some(elem => {
-						const comptimeAttributeValue = elem.value.getText().slice(1, -1) === "comptime";
-						if (comptimeAttributeValue && elem.name.text === 'type') {
-							const pos = elem.name.getStart();
-							const {line, character } = sourceFile.getLineAndCharacterOfPosition(pos);
-							console.warn(`DeprecationWarning: \`import ... with { type: "comptime" }\` is deprecated, prefer using \`with { at: "comptime" }\`\n\tat ${resolved}:${line + 1}:${character + 1}`);
-						}
-						return comptimeAttributeValue && (elem.name.text === 'at' || elem.name.text === 'type');
-					});
+					const comptime = elements.some(elem => elem.name.text === 'type' && elem.value.getText().slice(1, -1) === "comptime");
 
 					return comptime;
 				});

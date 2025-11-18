@@ -69,7 +69,7 @@
 <p>This error occurs when <code>comptime.ts</code> is traversing the source file to reconstruct an evaluation block from the expression that&#39;s being evaluated.</p>
 <h3>Explanation</h3>
 <p>Consider this source file:</p>
-<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
 import { value } from &quot;./value.ts&quot;;
 const x = 1;
 const y = sum(x, value);
@@ -78,7 +78,7 @@ const y = sum(x, value);
 <pre><code class="language-typescript">sum(x, value);
 </code></pre>
 <p><code>comptime.ts</code> will notice the identifiers and extract additional lines to add to the evaluation block.</p>
-<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
 import { value } from &quot;./value.ts&quot;;
 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~2
 const x = 1;
@@ -102,13 +102,13 @@ return sum(x, value);
 </blockquote>
 <p>This error occurs when there&#39;s a syntax error in the code that&#39;s being evaluated at compile time. The error message will include the specific syntax error and its location.</p>
 <h3>Broken Code ❌</h3>
-<pre><code class="language-typescript">import { sum } from &quot;./bar.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { sum } from &quot;./bar.ts&quot; with { type: &quot;comptime&quot; };
 console.log(sum(1 2 3)); // Missing comma
 </code></pre>
 <h3>Solution</h3>
 <p>Fix the syntax error in expressions that may be included in the evaluation block.</p>
 <h3>Fixed Code ✔️</h3>
-<pre><code class="language-typescript">import { sum } from &quot;./bar.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { sum } from &quot;./bar.ts&quot; with { type: &quot;comptime&quot; };
 console.log(sum(1, 2, 3)); // Fixed syntax
 </code></pre>
 <hr>
@@ -141,7 +141,7 @@ console.log(sum(1, 2, 3)); // Fixed syntax
 </ul>
 <p>A common cause of this error might be trying to evaluate an expression that cannot resolve all its dependencies at compile time.</p>
 <h3>Broken Code ❌</h3>
-<pre><code class="language-typescript">import { foo } from &quot;./bar.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { foo } from &quot;./bar.ts&quot; with { type: &quot;comptime&quot; };
 
 ((a) =&gt; {
 	console.log(foo(a));
@@ -155,7 +155,7 @@ console.log(foo(a));
 <h3>Solution</h3>
 <p>Fix the underlying error, and ensure all dependencies are available at compile time.</p>
 <h3>Fixed Code ✔️</h3>
-<pre><code class="language-typescript">import { foo } from &quot;./bar.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { foo } from &quot;./bar.ts&quot; with { type: &quot;comptime&quot; };
 
 const a = 10;
 console.log(foo(a));
@@ -164,25 +164,25 @@ console.log(foo(a));
 <h2>CT_ERR_NO_COMPTIME</h2>
 <blockquote>
 <p><code>comptime()</code> must be called in a comptime context, but was called at runtime.</p>
-<p>Are you missing <code>with { at: &quot;comptime&quot; }</code> or a compile-step?</p>
+<p>Are you missing <code>with { type: &quot;comptime&quot; }</code> or a compile-step?</p>
 </blockquote>
 <p>This error occurs when the <code>comptime()</code> function is called outside of a comptime context.</p>
 <p>This means you either:</p>
 <ul>
-<li>Imported <code>comptime</code> without the <code>{ at: &quot;comptime&quot; }</code> attribute.</li>
+<li>Imported <code>comptime</code> without the <code>{ type: &quot;comptime&quot; }</code> attribute.</li>
 <li>Attempted to run the code without compiling.</li>
 </ul>
 <h3>Broken Code ❌</h3>
-<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts&quot;; // not imported with { at: &quot;comptime&quot; }
+<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts&quot;; // not imported with { type: &quot;comptime&quot; }
 const x = comptime(1 + 2);
 </code></pre>
 <h3>Solution</h3>
 <ol>
-<li>Ensure you&#39;re importing with the comptime <code>at</code> attribute.</li>
+<li>Ensure you&#39;re importing with the comptime type attribute.</li>
 <li>Ensure you&#39;re compiling the module using one of the <a href="/#usage">available methods</a>.</li>
 </ol>
 <h3>Fixed Code ✔️</h3>
-<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
 const x = comptime(1 + 2); // Now in comptime context
 </code></pre>
 </main>

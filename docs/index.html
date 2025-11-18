@@ -94,7 +94,7 @@
 <p>comptime.ts allows you to evaluate expressions at compile time, similar to compile-time macros in other languages. This can help optimise your code by moving computations from runtime to compile time.</p>
 <h2>Examples</h2>
 <h3>1. Simple sum function</h3>
-<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
 
 console.log(sum(1, 2));
 </code></pre>
@@ -102,7 +102,7 @@ console.log(sum(1, 2));
 <pre><code class="language-typescript">console.log(3);
 </code></pre>
 <h3>2. Turn emotion CSS into a zero-runtime CSS library</h3>
-<pre><code class="language-typescript">import { css } from &quot;@emotion/css&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { css } from &quot;@emotion/css&quot; with { type: &quot;comptime&quot; };
 
 const style = css`
   color: red;
@@ -119,7 +119,7 @@ div({ class: style });
 <p><strong>Note</strong>: The <code>@emotion/css</code> import got removed from the output. You&#39;ll need to somehow add the styles back to your project somehow. See <a href="#running-code-after-comptime-evaluation">running code after comptime evaluation</a> for an example of emitting the styles as a CSS file. Alternatively, you might write a bundler plugin to import the CSS cache from <code>@emotion/css</code> and emit them as a CSS file, etc.</p>
 </blockquote>
 <h3>3. Calculate constants at compile time</h3>
-<pre><code class="language-typescript">import { ms } from &quot;ms&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { ms } from &quot;ms&quot; with { type: &quot;comptime&quot; };
 
 const HOUR = ms(&quot;1 hour&quot;);
 </code></pre>
@@ -128,7 +128,7 @@ const HOUR = ms(&quot;1 hour&quot;);
 </code></pre>
 <p>Apart from function calls and tagged template literals, all sorts of expressions are supported (even more complex cases like index access and imported constants). The only limitation is that the resultant value must be serialisable <a href="././serialisation">(see serialisation)</a>.</p>
 <blockquote>
-<p><strong>Note</strong>: The import statements marked with <code>at: &quot;comptime&quot;</code> are removed in the output. We assume you have other tooling (like Vite) to handle other unused redundant statements left behind after comptime evaluation.</p>
+<p><strong>Note</strong>: The import statements marked with <code>type: &quot;comptime&quot;</code> are removed in the output. We assume you have other tooling (like Vite) to handle other unused redundant statements left behind after comptime evaluation.</p>
 </blockquote>
 <h2>Installation</h2>
 <pre><code class="language-bash">bun add comptime.ts
@@ -185,12 +185,12 @@ await Bun.build({
 await comptimeCompiler({ tsconfigPath: &quot;tsconfig.json&quot; }, &quot;./out&quot;);
 </code></pre>
 <h2>Forcing comptime evaluation of arbitrary expressions (and resolving promises)</h2>
-<p>We can abuse the fact that any function imported with the <code>at: &quot;comptime&quot;</code> option will be evaluated at compile time.</p>
+<p>We can abuse the fact that any function imported with the <code>type: &quot;comptime&quot;</code> option will be evaluated at compile time.</p>
 <p>This library exports a <code>comptime()</code> function that can be used to force comptime evaluation of an expression. It has to be imported with the <code>&quot;comptime&quot;</code> attribute. Any expressions contained within it will be evaluated at compile time. If the result is a promise, the resolved value will be inlined.</p>
 <blockquote>
-<p><strong>Note</strong>: Technically the <code>comptime()</code> function by itself doesn&#39;t do anything by itself. It&#39;s an identity function. It&#39;s the <code>with { at: &quot;comptime&quot; }</code> attribute that makes the compiler evaluate the expression at compile time.</p>
+<p><strong>Note</strong>: Technically the <code>comptime()</code> function by itself doesn&#39;t do anything by itself. It&#39;s an identity function. It&#39;s the <code>with { type: &quot;comptime&quot; }</code> attribute that makes the compiler evaluate the expression at compile time.</p>
 </blockquote>
-<pre><code class="language-ts">import { comptime } from &quot;comptime.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-ts">import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
 </code></pre>
 <p>Use it to force comptime evaluation of an expression.</p>
 <pre><code class="language-ts">const x = comptime(1 + 2);
@@ -209,7 +209,7 @@ await comptimeCompiler({ tsconfigPath: &quot;tsconfig.json&quot; }, &quot;./out&
 </blockquote>
 <h3>Opting out of comptime virality</h3>
 <p>Normally, <code>comptime.ts</code> will eagerly extend comptime to expressions that include a comptime expression.</p>
-<pre><code class="language-ts">import { foo } from &quot;./foo.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-ts">import { foo } from &quot;./foo.ts&quot; with { type: &quot;comptime&quot; };
 
 const x = foo().bar[1];
 </code></pre>
@@ -239,9 +239,9 @@ const x = res[1];
 <h2>Running code after comptime evaluation</h2>
 <p>You can use the <code>comptime.defer()</code> function to run code after comptime evaluation of all modules.</p>
 <p>This could be used, for example, to emit collected CSS from <code>@emotion/css</code> at the end of the compilation process.</p>
-<pre><code class="language-ts">import { comptime } from &quot;comptime.ts&quot; with { at: &quot;comptime&quot; };
-import { css, cache } from &quot;@emotion/css&quot; with { at: &quot;comptime&quot; };
-import { writeFileSync } from &quot;node:fs&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-ts">import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
+import { css, cache } from &quot;@emotion/css&quot; with { type: &quot;comptime&quot; };
+import { writeFileSync } from &quot;node:fs&quot; with { type: &quot;comptime&quot; };
 
 const style = css`
   color: red;
@@ -264,7 +264,7 @@ if multiple deferred functions exist, they are not guaranteed to be executed in 
 <h2>How it Works</h2>
 <p><code>comptime.ts</code> works by:</p>
 <ol>
-<li>Parsing your TypeScript code to find imports marked with <code>at: &quot;comptime&quot;</code>.</li>
+<li>Parsing your TypeScript code to find imports marked with <code>type: &quot;comptime&quot;</code>.</li>
 <li>Finding all expressions in your files that use these imports.</li>
 <li>Collecting an execution block by walking up the file to find all references used by the comptime expression.</li>
 <li>Evaluating the execution block in an isolated context at compile time.</li>
@@ -302,7 +302,7 @@ if multiple deferred functions exist, they are not guaranteed to be executed in 
 <ol>
 <li><p><strong>Redundant code not removed</strong></p>
 <ul>
-<li><code>comptime.ts</code> removes imports marked with <code>at: &quot;comptime&quot;</code> and replaces comptime expressions.</li>
+<li><code>comptime.ts</code> removes imports marked with <code>type: &quot;comptime&quot;</code> and replaces comptime expressions.</li>
 <li>However, it does not remove other redundant code that might be left behind after compilation.</li>
 <li>Use other tooling (like Vite) to handle such cleanup after the fact.</li>
 <li><code>comptime.ts</code> is available as a standalone CLI, JavaScript API and Vite plugin. If you&#39;d like <code>comptime.ts</code> to integrate with other tooling, please let us know via an issue or raise a PR!</li>
@@ -315,7 +315,7 @@ if multiple deferred functions exist, they are not guaranteed to be executed in 
 <li>If multiple comptime expressions exist in the same file, all dependent statements will be extracted and evaluated for <em>each</em> expression. This may cause the same declarations to be evaluated multiple times, and mutations are not reflected between evaluations.</li>
 <li>If you want a mutable comptime variable, declare it in another file and import it with the &quot;comptime&quot; attribute.</li>
 </ul>
-<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
 
 let a = 1;
 
@@ -331,10 +331,10 @@ const x = 4;
 const y = 4; // same as previous line because it was evaluated independently
 </code></pre>
 <p>However, if we move the mutable state to another file, mutations are reflected between evaluations.</p>
-<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { sum } from &quot;./sum.ts&quot; with { type: &quot;comptime&quot; };
 
 // export const state = { a: 1 };
-import { state } from &quot;./state.ts&quot; with { at: &quot;comptime&quot; };
+import { state } from &quot;./state.ts&quot; with { type: &quot;comptime&quot; };
 
 const x = sum(++state.a, 2);
 ++state.a;
@@ -348,7 +348,7 @@ const y = 5;
 </li>
 <li><p><strong>My comptime expression was not replaced</strong></p>
 <ul>
-<li>Check that the import has <code>{ at: &quot;comptime&quot; }</code>.</li>
+<li>Check that the import has <code>{ type: &quot;comptime&quot; }</code>.</li>
 <li>Ensure the expression is serialisable <a href="././serialisation">(see serialisation)</a>.</li>
 <li>Verify all dependencies are available at compile time.</li>
 </ul>

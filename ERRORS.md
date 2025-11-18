@@ -33,7 +33,7 @@ This error occurs when `comptime.ts` is traversing the source file to reconstruc
 Consider this source file:
 
 ```typescript
-import { sum } from "./sum.ts" with { at: "comptime" };
+import { sum } from "./sum.ts" with { type: "comptime" };
 import { value } from "./value.ts";
 const x = 1;
 const y = sum(x, value);
@@ -48,7 +48,7 @@ sum(x, value);
 `comptime.ts` will notice the identifiers and extract additional lines to add to the evaluation block.
 
 ```typescript
-import { sum } from "./sum.ts" with { at: "comptime" };
+import { sum } from "./sum.ts" with { type: "comptime" };
 import { value } from "./value.ts";
 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~2
 const x = 1;
@@ -84,7 +84,7 @@ This error occurs when there's a syntax error in the code that's being evaluated
 ### Broken Code ❌
 
 ```typescript
-import { sum } from "./bar.ts" with { at: "comptime" };
+import { sum } from "./bar.ts" with { type: "comptime" };
 console.log(sum(1 2 3)); // Missing comma
 ```
 
@@ -95,7 +95,7 @@ Fix the syntax error in expressions that may be included in the evaluation block
 ### Fixed Code ✔️
 
 ```typescript
-import { sum } from "./bar.ts" with { at: "comptime" };
+import { sum } from "./bar.ts" with { type: "comptime" };
 console.log(sum(1, 2, 3)); // Fixed syntax
 ```
 
@@ -142,7 +142,7 @@ A common cause of this error might be trying to evaluate an expression that cann
 ### Broken Code ❌
 
 ```typescript
-import { foo } from "./bar.ts" with { at: "comptime" };
+import { foo } from "./bar.ts" with { type: "comptime" };
 
 ((a) => {
 	console.log(foo(a));
@@ -164,7 +164,7 @@ Fix the underlying error, and ensure all dependencies are available at compile t
 ### Fixed Code ✔️
 
 ```typescript
-import { foo } from "./bar.ts" with { at: "comptime" };
+import { foo } from "./bar.ts" with { type: "comptime" };
 
 const a = 10;
 console.log(foo(a));
@@ -176,30 +176,30 @@ console.log(foo(a));
 
 > `comptime()` must be called in a comptime context, but was called at runtime.
 >
-> Are you missing `with { at: "comptime" }` or a compile-step?
+> Are you missing `with { type: "comptime" }` or a compile-step?
 
 This error occurs when the `comptime()` function is called outside of a comptime context.
 
 This means you either:
 
-- Imported `comptime` without the `{ at: "comptime" }` attribute.
+- Imported `comptime` without the `{ type: "comptime" }` attribute.
 - Attempted to run the code without compiling.
 
 ### Broken Code ❌
 
 ```typescript
-import { comptime } from "comptime.ts"; // not imported with { at: "comptime" }
+import { comptime } from "comptime.ts"; // not imported with { type: "comptime" }
 const x = comptime(1 + 2);
 ```
 
 ### Solution
 
-1. Ensure you're importing with the comptime `at` attribute.
+1. Ensure you're importing with the comptime type attribute.
 2. Ensure you're compiling the module using one of the [available methods](/#usage).
 
 ### Fixed Code ✔️
 
 ```typescript
-import { comptime } from "comptime.ts" with { at: "comptime" };
+import { comptime } from "comptime.ts" with { type: "comptime" };
 const x = comptime(1 + 2); // Now in comptime context
 ```

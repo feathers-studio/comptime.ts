@@ -201,12 +201,12 @@ const result = comptime(Promise.resolve(42));
 const result = 42;
 </code></pre>
 <p>If your expression returns a promise, we recommend wrapping it in the <code>comptime</code> function to provide the correct types.</p>
-<pre><code class="language-typescript">import { readFile } from &quot;fs/promises&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { readFile } from &quot;fs/promises&quot; with { type: &quot;comptime&quot; };
 const result = readFile(&quot;file.txt&quot;, &quot;utf-8&quot;); // inferred as Promise&lt;string&gt;, but is actually a string
 </code></pre>
 <p>Since <code>readFile</code> is imported as a comptime function, the call is awaited and replaced with the file contents. To correctly type the result, you can use the <code>comptime</code> function to wrap the expression.</p>
-<pre><code class="language-typescript">import { readFile } from &quot;fs/promises&quot; with { at: &quot;comptime&quot; };
-import { comptime } from &quot;comptime.ts&quot; with { at: &quot;comptime&quot; };
+<pre><code class="language-typescript">import { readFile } from &quot;fs/promises&quot; with { type: &quot;comptime&quot; };
+import { comptime } from &quot;comptime.ts&quot; with { type: &quot;comptime&quot; };
 const result = comptime(readFile(&quot;file.txt&quot;, &quot;utf-8&quot;)); // inferred as string
 </code></pre>
 <p>This is of course, zero-cost, since the <code>comptime</code> call is also compiled away.</p>

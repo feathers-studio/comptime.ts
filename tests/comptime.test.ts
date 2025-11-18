@@ -59,7 +59,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-				import { sum } from "./bar.ts" with { at: "comptime" };
+				import { sum } from "./bar.ts" with { type: "comptime" };
 				console.log(sum(1, 2));
 			`,
 		);
@@ -83,8 +83,8 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { sum } from "./bar.ts" with { at: "comptime" };
-			import { mul } from "./baz.ts" with { at: "comptime" };
+			import { sum } from "./bar.ts" with { type: "comptime" };
+			import { mul } from "./baz.ts" with { type: "comptime" };
 			console.log(sum(1, 2) + mul(2, 3));
 		`,
 		);
@@ -115,7 +115,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { sub } from "./nested/bar.ts" with { at: "comptime" };
+			import { sub } from "./nested/bar.ts" with { type: "comptime" };
 			console.log(sub(5, 3));
 		`,
 		);
@@ -153,7 +153,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { x } from "./bar.ts" with { at: "comptime" };
+			import { x } from "./bar.ts" with { type: "comptime" };
 			console.log(x);
 			`,
 		);
@@ -200,7 +200,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { sum } from "./bar.ts" with { at: "comptime" };
+			import { sum } from "./bar.ts" with { type: "comptime" };
 			console.log(sum(1 2 3)); // missing comma
 		`,
 		);
@@ -234,7 +234,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { o } from "./bar.ts" with { at: "comptime" };
+			import { o } from "./bar.ts" with { type: "comptime" };
 			console.log(o.foo + o.bar.baz + o.bar.qux.reduce((a, b) => a + b, 0));
 		`,
 		);
@@ -263,7 +263,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { o } from "./bar.ts" with { at: "comptime" };
+			import { o } from "./bar.ts" with { type: "comptime" };
 			console.log((o.foo).toString());
 		`,
 		);
@@ -291,7 +291,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { x } from "./bar.ts" with { at: "comptime" };
+			import { x } from "./bar.ts" with { type: "comptime" };
 			console.log(x);
 		`,
 		);
@@ -314,7 +314,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { console } from "./console.ts" with { at: "comptime" };
+			import { console } from "./console.ts" with { type: "comptime" };
 			console.log(5);
 		`,
 		);
@@ -339,7 +339,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { t } from "./bar.ts" with { at: "comptime" };
+			import { t } from "./bar.ts" with { type: "comptime" };
 			console.log(t\`hello\`);
 		`,
 		);
@@ -362,7 +362,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { t } from "./bar.ts" with { at: "comptime" };
+			import { t } from "./bar.ts" with { type: "comptime" };
 			console.log(t\`hello ${5}!\`);
 		`,
 		);
@@ -385,7 +385,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { comptime } from "comptime.ts" with { at: "comptime" };
+			import { comptime } from "comptime.ts" with { type: "comptime" };
 			const x = comptime(1 + 2);
 			console.log(x);
 		`,
@@ -404,8 +404,8 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { comptime } from "comptime.ts" with { at: "comptime" };
-			import { o } from "./bar.ts" with { at: "comptime" };
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			import { o } from "./bar.ts" with { type: "comptime" };
 			console.log(comptime(o.foo + o.bar.baz + o.bar.qux.reduce((a, b) => a + b, 0)));
 		`,
 		);
@@ -435,7 +435,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { comptime } from "comptime.ts" with { at: "comptime" };
+			import { comptime } from "comptime.ts" with { type: "comptime" };
 			const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 			const x = comptime(await sleep(1000).then(() => 1 + 2));
 			console.log(x);
@@ -456,10 +456,10 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { x } from "./bar.ts" with { at: "comptime" };
-			import * as bar from "./bar.ts" with { at: "comptime" };
-			import defaultBar from "./bar.ts" with { at: "comptime" };
-			import { x as y } from "./bar.ts" with { at: "comptime" };
+			import { x } from "./bar.ts" with { type: "comptime" };
+			import * as bar from "./bar.ts" with { type: "comptime" };
+			import defaultBar from "./bar.ts" with { type: "comptime" };
+			import { x as y } from "./bar.ts" with { type: "comptime" };
 			console.log(x, bar.x, defaultBar, y);
 		`,
 		);
@@ -486,7 +486,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { comptime } from "comptime.ts" with { at: "comptime" };
+			import { comptime } from "comptime.ts" with { type: "comptime" };
 			export const y = 2;
 			console.log(comptime(y + y));
 		`,
@@ -505,7 +505,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { x } from "bar" with { at: "comptime" };
+			import { x } from "bar" with { type: "comptime" };
 			console.log(x);
 		`,
 		);
@@ -538,7 +538,7 @@ describe("comptime", () => {
 		await file(
 			"node_modules/bar/index.js",
 			`
-			import { x } from "baz" with { at: "comptime" };
+			import { x } from "baz" with { type: "comptime" };
 			console.log(x);
 		`,
 		);
@@ -563,7 +563,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { x } from "bar" with { at: "comptime" };
+			import { x } from "bar" with { type: "comptime" };
 			console.log(x);
 		`,
 		);
@@ -596,7 +596,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { comptime } from "comptime.ts" with { at: "comptime" };
+			import { comptime } from "comptime.ts" with { type: "comptime" };
 			const x = 2;
 			function foo(y: number) {
 				return x + y;
@@ -620,11 +620,11 @@ describe("comptime", () => {
 		const fooname = await file(
 			"foo.ts",
 			`
-			import { x } from "./baz.ts" with { at: "comptime" };
+			import { x } from "./baz.ts" with { type: "comptime" };
 			console.log(x);
 
-			import { comptime, getComptimeContext } from "comptime.ts" with { at: "comptime" };
-			import { existsSync, writeFileSync } from "node:fs" with { at: "comptime" };
+			import { comptime, getComptimeContext } from "comptime.ts" with { type: "comptime" };
+			import { existsSync, writeFileSync } from "node:fs" with { type: "comptime" };
 			
 			if (existsSync("foo.txt")) throw new Error("foo.txt should not exist yet");
 			if (existsSync("bar.txt")) throw new Error("bar.txt should not exist yet");
@@ -637,11 +637,11 @@ describe("comptime", () => {
 		const barname = await file(
 			"bar.ts",
 			`
-			import { x } from "./baz.ts" with { at: "comptime" };
+			import { x } from "./baz.ts" with { type: "comptime" };
 			console.log(x);
 
-			import { comptime, getComptimeContext } from "comptime.ts" with { at: "comptime" };
-			import { existsSync, writeFileSync } from "node:fs" with { at: "comptime" };
+			import { comptime, getComptimeContext } from "comptime.ts" with { type: "comptime" };
+			import { existsSync, writeFileSync } from "node:fs" with { type: "comptime" };
 			
 			if (existsSync("foo.txt")) throw new Error("foo.txt should not exist yet");
 			if (existsSync("bar.txt")) throw new Error("bar.txt should not exist yet");
@@ -700,7 +700,7 @@ describe("comptime", () => {
 		await file(
 			"importer.ts",
 			`
-			import * as mod from './value_emitter.ts' with { at: 'comptime' };
+			import * as mod from './value_emitter.ts' with { type: 'comptime' };
 			export const obj = mod;
 		`,
 		);
@@ -716,7 +716,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { comptime } from "comptime.ts" with { at: "comptime" };
+			import { comptime } from "comptime.ts" with { type: "comptime" };
 			const env = { DEBUG: "true" };
 			export const fn = comptime(env.DEBUG ? () => 1 + 2 : () => {});
 		`,
@@ -734,7 +734,7 @@ describe("comptime", () => {
 		await file(
 			"foo.ts",
 			`
-			import { comptime } from "comptime.ts" with { at: "comptime" };
+			import { comptime } from "comptime.ts" with { type: "comptime" };
 			export const MyClass = comptime(class {
 				static x = 5;
 				constructor() {

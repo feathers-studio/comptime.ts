@@ -1,2 +1,2 @@
-import { sum } from "./producer.ts" with { at: "comptime" };
+import { sum } from "./producer.ts" with { type: "comptime" };
 console.log(sum(1, 2));
