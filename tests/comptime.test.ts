@@ -755,4 +755,60 @@ describe("comptime", () => {
 		const result = await getCompiled("foo.ts");
 		expect(result).toEqual(expected);
 	});
+
+	it("should respect json imports", async () => {
+		await file(
+			"data.json",
+			`
+			{
+				"foo": "bar",
+				"baz": 42
+			}
+		`,
+		);
+		await file(
+			"foo.ts",
+			`
+			import data from "./data.json" with { type: "json" };
+			import { comptime } from "comptime.ts" with { type: "comptime" };
+			const foo = comptime(data.foo);
+			const baz = comptime(data.baz);
+			console.log(foo, baz);
+		`,
+		);
+		const expected = `
+			import data from "./data.json" with { type: "json" };
+			
+			const foo = "bar";
+			const baz = 42;
+			console.log(foo, baz);
+		`;
+		const result = await getCompiled("foo.ts");
+		expect(result).toEqual(expected);
+	});
+
+	it("should respect comptime+json imports", async () => {
+		await file(
+			"data.json",
+			`
+			{
+				"foo": "bar",
+				"baz": 42
+			}
+		`,
+		);
+		await file(
+			"foo.ts",
+			`
+			import data from "./data.json" with { type: "comptime+json" };
+			console.log(data.foo, data.baz);
+		`,
+		);
+		const expected = `
+			
+			console.log("bar", 42);
+		`;
+		const result = await getCompiled("foo.ts");
+		expect(result).toEqual(expected);
+	});
 });
