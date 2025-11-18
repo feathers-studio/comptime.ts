@@ -167,7 +167,7 @@ const getImportLine = async (
 				? decl.attributes.elements.flatMap(attr => {
 					const name = attr.name.getText();
 					const value = attr.value.getText();
-					if ((name === 'at' || name === 'type') && value === '"comptime"') {
+					if ((name === 'at' || name === 'type') && value.slice(1, -1) === 'comptime') {
 						return [];
 					}
 					if (value === '"json"')

@@ -62,15 +62,15 @@ const result = 42;
 If your expression returns a promise, we recommend wrapping it in the `comptime` function to provide the correct types.
 
 ```typescript
-import { readFile } from "fs/promises" with { type: "comptime" };
+import { readFile } from "fs/promises" with { at: "comptime" };
 const result = readFile("file.txt", "utf-8"); // inferred as Promise<string>, but is actually a string
 ```
 
 Since `readFile` is imported as a comptime function, the call is awaited and replaced with the file contents. To correctly type the result, you can use the `comptime` function to wrap the expression.
 
 ```typescript
-import { readFile } from "fs/promises" with { type: "comptime" };
-import { comptime } from "comptime.ts" with { type: "comptime" };
+import { readFile } from "fs/promises" with { at: "comptime" };
+import { comptime } from "comptime.ts" with { at: "comptime" };
 const result = comptime(readFile("file.txt", "utf-8")); // inferred as string
 ```
 
