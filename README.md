@@ -43,6 +43,7 @@ This is useful for optimising your code by moving computations from runtime to c
 - [Forcing comptime evaluation](#forcing-comptime-evaluation-of-arbitrary-expressions-and-resolving-promises)
   - [Resolving promises](#resolving-promises)
   - [Opting out of comptime virality](#opting-out-of-comptime-virality)
+- [Using other import attributes](#using-other-import-attributes)
 - [Running code after comptime evaluation](#running-code-after-comptime-evaluation)
 - [How it works](#how-it-works)
 - [Limitations](#limitations)
@@ -276,6 +277,32 @@ In this case, `foo().bar` is evaluated at comptime, but `[1]` is left untouched.
 > ```
 >
 > This also results in only `foo().bar` being evaluated at comptime, and doesn't upset your formatter.
+
+## Using other import attributes
+
+You can use other import attributes alongside `type: "comptime"`. Support for them depends on the runtime you are using. For instance, to import JSON as at comptime, you can do:
+
+```ts
+import items from "./items.json" with { type: "comptime+json" };
+console.log(items.map(items => items.name));
+```
+
+Compiles to:
+
+```ts
+console.log(["item1", "item2", "item3"]);
+```
+
+The same applies to other import attributes, such as `comptime+text`, `comptime+bytes`, etc., as supported by your runtime.
+
+Since expressions are viral, the entire expression `items.map(...)` is evaluated at comptime. This is desirable in most cases, since some computation has moved to comptime. See [opting out of comptime virality](#opting-out-of-comptime-virality) for how to avoid this if needed. You can also assign the imported value to a variable to embed the JSON data in your code instead.
+
+```ts
+import itemsJSON from "./items.json" with { type: "comptime+json" };
+const items = itemsJSON;
+```
+
+Here `itemsJSON` is replaced with the JSON data at comptime, but `items` remains a runtime variable.
 
 ## Running code after comptime evaluation
 

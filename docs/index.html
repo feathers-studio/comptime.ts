@@ -82,6 +82,7 @@
 <li><a href="#opting-out-of-comptime-virality">Opting out of comptime virality</a></li>
 </ul>
 </li>
+<li><a href="#using-other-import-attributes">Using other import attributes</a></li>
 <li><a href="#running-code-after-comptime-evaluation">Running code after comptime evaluation</a></li>
 <li><a href="#how-it-works">How it works</a></li>
 <li><a href="#limitations">Limitations</a></li>
@@ -236,6 +237,19 @@ const x = res[1];
 </code></pre>
 <p>This also results in only <code>foo().bar</code> being evaluated at comptime, and doesn&#39;t upset your formatter.</p>
 </blockquote>
+<h2>Using other import attributes</h2>
+<p>You can use other import attributes alongside <code>type: &quot;comptime&quot;</code>. Support for them depends on the runtime you are using. For instance, to import JSON as at comptime, you can do:</p>
+<pre><code class="language-ts">import items from &quot;./items.json&quot; with { type: &quot;comptime+json&quot; };
+console.log(items.map(items =&gt; items.name));
+</code></pre>
+<p>Compiles to:</p>
+<pre><code class="language-ts">console.log([&quot;item1&quot;, &quot;item2&quot;, &quot;item3&quot;]);
+</code></pre>
+<p>Since expressions are viral, the entire expression <code>items.map(...)</code> is evaluated at comptime. This is desirable in most cases, since some computation has moved to comptime. See <a href="#opting-out-of-comptime-virality">opting out of comptime virality</a> for how to avoid this if needed. You can also assign the imported value to a variable to embed the JSON data in your code instead.</p>
+<pre><code class="language-ts">import itemsJSON from &quot;./items.json&quot; with { type: &quot;comptime+json&quot; };
+const items = itemsJSON;
+</code></pre>
+<p>Here <code>itemsJSON</code> is replaced with the JSON data at comptime, but <code>items</code> remains a runtime variable. The same applies to other import attributes, such as <code>comptime+text</code>, <code>comptime+bytes</code>, etc., as supported by your runtime.</p>
 <h2>Running code after comptime evaluation</h2>
 <p>You can use the <code>comptime.defer()</code> function to run code after comptime evaluation of all modules.</p>
 <p>This could be used, for example, to emit collected CSS from <code>@emotion/css</code> at the end of the compilation process.</p>
