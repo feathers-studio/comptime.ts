@@ -4,6 +4,8 @@ import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { describe, it, expect, beforeEach, afterAll } from "bun:test";
 import { comptimeCompiler } from "../src/api.ts";
 import { formatPath } from "../src/resolve.ts";
+import { getComptimeReplacements } from "../src/comptime.ts";
+import MagicString from "magic-string";
 
 const randId = () => Math.random().toString(36).substring(2, 15);
 
@@ -810,5 +812,39 @@ describe("comptime", () => {
 		`;
 		const result = await getCompiled("foo.ts");
 		expect(result).toEqual(expected);
+	});
+
+	it("should generate sourcemaps with valid sources", async () => {
+		await file(
+			"foo.ts",
+			`
+			import { sum } from "./bar.ts" with { type: "comptime" };
+			console.log(sum(1, 2));
+		`,
+		);
+		await file(
+			"bar.ts",
+			`
+			export function sum(a: number, b: number) { return a + b; }
+		`,
+		);
+
+		const tsconfigPath = join(temp, "tsconfig.json");
+		const replacements = await getComptimeReplacements({ tsconfigPath });
+
+		for (const [id, repls] of Object.entries(replacements)) {
+			if (!repls.length) continue;
+
+			const mod = await readFile(id, "utf-8");
+			const s = new MagicString(mod);
+			for (const r of repls) {
+				s.overwrite(r.start, r.end, r.replacement);
+			}
+
+			const map = s.generateMap({ source: id, includeContent: true });
+			expect(map.sources).not.toContain("..");
+			expect(map.sources).not.toContain("");
+			expect(map.sources[0]).toEqual(id);
+		}
 	});
 });
