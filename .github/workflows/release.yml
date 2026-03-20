@@ -5,12 +5,17 @@ on:
     tags:
       - '*.*.*'
 
+# Required for npm Trusted Publishers
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
@@ -22,7 +27,6 @@ jobs:
         npm version $TAG_VERSION --no-git-tag-version
     - name: Publish to npm
       run : |
-        npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
         npm publish --ignore-scripts --access=public
       env :
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
