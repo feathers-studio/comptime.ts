@@ -34,7 +34,7 @@ export async function comptime(opts?: ComptimeVitePluginOpts): Promise<Plugin> {
 				s.overwrite(r.start, r.end, r.replacement);
 			}
 
-			return { code: s.toString(), map: s.generateMap() };
+			return { code: s.toString(), map: s.generateMap({ source: id, includeContent: true }) };
 		},
 		async handleHotUpdate({ modules, file }) {
 			if (!filter(file)) return;
