@@ -15,7 +15,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
     - uses: actions/checkout@v6
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+        registry-url: 'https://registry.npmjs.org'
     - uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
@@ -26,7 +31,4 @@ jobs:
         TAG_VERSION=${GITHUB_REF#refs/tags/}
         npm version $TAG_VERSION --no-git-tag-version
     - name: Publish to npm
-      run : |
-        npm publish --ignore-scripts --access=public
-      env :
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      run : npm publish --ignore-scripts --access=public
